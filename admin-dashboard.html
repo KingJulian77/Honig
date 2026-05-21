@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard – Honig aus Hochkamp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="sb.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script>emailjs.init('krQRCnNy9nv3DaLM7');</script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream:  '#F5F0EB',
+            honey:  '#B8862A',
+            forest: '#2D4A3E',
+            ink:    '#1A1A1A',
+          },
+          fontFamily: {
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+            sans:  ['"DM Sans"', 'system-ui', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background-color: #F0ECE5; color: #1A1A1A; min-height: 100vh; }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .status-ausstehend { background: rgba(234,179,8,0.15); color: #92400e; }
+    .status-bezahlt    { background: rgba(34,197,94,0.15);  color: #166534; }
+    .status-versendet  { background: rgba(59,130,246,0.15); color: #1e40af; }
+
+    .period-btn       { color: #6b7280; cursor: pointer; transition: all 0.15s; }
+    .period-btn.active { background: white; color: #1A1A1A; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+
+  <!-- ─── Top Bar ─────────────────────────────────────────────── -->
+  <header class="bg-forest text-white px-5 md:px-10 py-5 flex items-center justify-between">
+    <div class="flex items-center gap-4">
+      <img src="brand-assets-photos/Logo.png" alt="Logo" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+      <div>
+        <p class="text-xs tracking-[0.15em] uppercase opacity-60 font-sans">Honig aus Hochkamp</p>
+        <p class="font-serif text-lg font-normal">Admin Dashboard</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-6">
+      <a href="index.html" target="_blank" class="text-white/60 text-xs hover:text-white transition-colors tracking-wide uppercase">
+        Website ansehen →
+      </a>
+      <button onclick="logout()"
+        class="border border-white/30 text-white text-xs font-medium px-5 py-2 rounded-full hover:bg-white/10 transition-colors tracking-wide uppercase">
+        Abmelden
+      </button>
+    </div>
+  </header>
+
+  <!-- ─── Main ────────────────────────────────────────────────── -->
+  <main class="max-w-screen-xl mx-auto px-4 md:px-10 py-8 md:py-12">
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-12" id="stats-row">
+      <div class="bg-white border border-gray-200 rounded-2xl p-6">
+        <p class="text-xs text-gray-400 uppercase tracking-wider mb-2">Bestellungen gesamt</p>
+        <p class="font-serif text-4xl text-ink" id="stat-total">0</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-2xl p-6">
+        <p class="text-xs text-gray-400 uppercase tracking-wider mb-2">Offen (nicht archiviert)</p>
+        <p class="font-serif text-4xl text-honey" id="stat-pending">0</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-2xl p-6">
+        <p class="text-xs text-gray-400 uppercase tracking-wider mb-2">Newsletter-Abonnenten</p>
+        <p class="font-serif text-4xl text-ink" id="stat-subs">0</p>
+      </div>
+    </div>
+
+    <!-- Statistiken -->
+    <section class="mb-12">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="font-serif font-normal text-ink text-2xl">Statistiken</h2>
+        <div class="flex gap-1 rounded-full p-1" style="background:#F3F4F6;">
+          <button id="period-week"  onclick="setStatPeriod('week')"  class="period-btn text-xs font-medium px-4 py-2 rounded-full">Letzte Woche</button>
+          <button id="period-month" onclick="setStatPeriod('month')" class="period-btn text-xs font-medium px-4 py-2 rounded-full">Letzter Monat</button>
+          <button id="period-all"   onclick="setStatPeriod('all')"   class="period-btn text-xs font-medium px-4 py-2 rounded-full active">Alles</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6">
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Umsatz</p>
+          <p class="font-serif text-3xl text-ink mt-2" id="stat-revenue">0,00 €</p>
+          <p class="text-xs text-gray-400 mt-2" id="stat-period-label">Gesamt</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Gläser verkauft</p>
+          <p class="font-serif text-3xl text-ink mt-2" id="stat-jars">0</p>
+          <p class="text-xs text-gray-400 mt-2" id="stat-period-label-2">Gesamt</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">Bestellungen</p>
+          <p class="font-serif text-3xl text-ink mt-2" id="stat-orders-period">0</p>
+          <p class="text-xs text-gray-400 mt-2" id="stat-period-label-3">Gesamt</p>
+        </div>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-2xl p-8">
+        <p class="text-xs text-gray-400 uppercase tracking-wider mb-6">Bestellungen nach Postleitzahl <span id="plz-period-label" class="normal-case font-normal">(Gesamt)</span></p>
+        <div id="plz-chart">
+          <p class="text-gray-400 text-sm text-center py-4">Noch keine Bestellungen vorhanden.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bestand -->
+    <section class="mb-12">
+      <h2 class="font-serif font-normal text-ink text-2xl mb-6">Bestand verwalten</h2>
+      <div class="bg-white border border-gray-200 rounded-2xl p-8">
+        <p class="text-xs text-gray-400 uppercase tracking-wider mb-6">Verfügbare Gläser pro Variante</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8">
+
+          <div>
+            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">350g Glas</label>
+            <div class="flex items-center gap-3">
+              <input type="number" id="stock-350" min="0"
+                class="w-28 border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream text-center focus:outline-none focus:border-honey"
+                style="font-family:'DM Sans',sans-serif;">
+              <span class="text-gray-400 text-sm">Gläser</span>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">500g Glas</label>
+            <div class="flex items-center gap-3">
+              <input type="number" id="stock-500" min="0"
+                class="w-28 border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream text-center focus:outline-none focus:border-honey"
+                style="font-family:'DM Sans',sans-serif;">
+              <span class="text-gray-400 text-sm">Gläser</span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="flex items-center gap-4">
+          <button onclick="saveStock()"
+            class="bg-honey text-white text-sm font-medium px-8 py-3 rounded-full hover:opacity-90 transition-opacity"
+            style="font-family:'DM Sans',sans-serif;letter-spacing:0.02em;">
+            Bestand speichern →
+          </button>
+          <span id="stock-saved" class="hidden text-sm text-green-700 font-medium">✓ Gespeichert – Änderungen sind live auf der Website</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Orders -->
+    <section class="mb-12">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="font-serif font-normal text-ink text-2xl">Bestellungen</h2>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-4">
+        <!-- Table header (desktop only) -->
+        <div class="hidden md:grid text-xs font-medium text-gray-400 uppercase tracking-wider px-6 py-4 border-b border-gray-100"
+          style="grid-template-columns: 70px 100px 130px 1fr 80px 90px 120px 190px;">
+          <span>Bestellnr.</span>
+          <span>Datum</span>
+          <span>Name</span>
+          <span>Adresse</span>
+          <span>Größe</span>
+          <span>Preis</span>
+          <span>Status</span>
+          <span>Aktion</span>
+        </div>
+        <!-- Table body -->
+        <div id="orders-body">
+          <div class="px-6 py-12 text-center text-gray-400 text-sm">
+            Noch keine Bestellungen vorhanden.
+          </div>
+        </div>
+      </div>
+
+      <!-- Archive toggle -->
+      <button onclick="toggleArchive()"
+        class="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors mb-3">
+        <span id="archive-chevron" style="display:inline-block;transition:transform 0.2s;">▶</span>
+        <span id="archive-toggle-label">Archiv anzeigen (0)</span>
+      </button>
+
+      <div id="archived-section" class="hidden">
+        <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden" style="opacity:0.8;">
+          <div class="hidden md:grid text-xs font-medium text-gray-400 uppercase tracking-wider px-6 py-4 border-b border-gray-100"
+            style="grid-template-columns: 70px 100px 130px 1fr 80px 90px 120px 190px;">
+            <span>Bestellnr.</span>
+            <span>Datum</span>
+            <span>Name</span>
+            <span>Adresse</span>
+            <span>Größe</span>
+            <span>Preis</span>
+            <span>Status</span>
+            <span>Aktion</span>
+          </div>
+          <div id="archived-body">
+            <div class="px-6 py-10 text-center text-gray-400 text-sm">
+              Keine archivierten Bestellungen.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lieferkarte -->
+    <section class="mb-12 bg-white rounded-2xl overflow-hidden" style="box-shadow:0 2px 12px rgba(0,0,0,0.07);isolation:isolate;z-index:0;position:relative;">
+      <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+        <h2 class="font-serif font-normal text-ink text-2xl">Lieferkarte</h2>
+        <span class="text-xs text-gray-400" id="map-status">Karte wird geladen…</span>
+      </div>
+      <div id="order-map" style="height:420px;"></div>
+    </section>
+
+    <!-- Lieferroute -->
+    <section class="mb-12 bg-white rounded-2xl overflow-hidden" style="box-shadow:0 2px 12px rgba(0,0,0,0.07);">
+      <div class="px-6 py-5 border-b border-gray-100">
+        <h2 class="font-serif font-normal text-ink text-2xl">Lieferroute</h2>
+      </div>
+      <div id="route-list" class="px-6 py-6">
+        <p class="text-gray-400 text-sm">Route wird geladen…</p>
+      </div>
+    </section>
+
+    <!-- Newsletter Subscribers -->
+    <section>
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="font-serif font-normal text-ink text-2xl">Newsletter-Abonnenten</h2>
+        <div class="flex items-center gap-5">
+          <button onclick="openNewsletterModal()"
+            style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#B8862A;background:none;border:none;cursor:pointer;padding:0;font-family:'DM Sans',sans-serif;">
+            Newsletter versenden →
+          </button>
+          <button onclick="clearSubscribers()"
+            class="text-xs text-gray-400 hover:text-red-600 transition-colors tracking-wide uppercase">
+            Alle löschen
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+        <div class="grid text-xs font-medium text-gray-400 uppercase tracking-wider px-6 py-4 border-b border-gray-100"
+          style="grid-template-columns: 1fr 120px 80px;">
+          <span>E-Mail</span>
+          <span>Eingetragen am</span>
+          <span>Aktion</span>
+        </div>
+        <div id="subs-body">
+          <div class="px-6 py-12 text-center text-gray-400 text-sm" id="subs-empty">
+            Noch keine Abonnenten eingetragen.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Auth guard
+    if (sessionStorage.getItem('adminLoggedIn') !== 'true') {
+      window.location.href = 'admin-login.html';
+    }
+
+    function logout() {
+      sessionStorage.removeItem('adminLoggedIn');
+      window.location.href = 'index.html';
+    }
+
+    // ── Confirmation Modal ───────────────────────────────────────
+    let _confirmCb = null;
+
+    function showConfirm(title, text, cb) {
+      document.getElementById('confirm-title').textContent = title;
+      document.getElementById('confirm-text').textContent  = text;
+      const modal = document.getElementById('confirm-modal');
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+      _confirmCb = cb;
+    }
+
+    function confirmOk() {
+      const modal = document.getElementById('confirm-modal');
+      modal.classList.add('hidden');
+      modal.style.display = '';
+      if (_confirmCb) { _confirmCb(); _confirmCb = null; }
+    }
+
+    function confirmCancel() {
+      const modal = document.getElementById('confirm-modal');
+      modal.classList.add('hidden');
+      modal.style.display = '';
+      _confirmCb = null;
+    }
+
+    // ── Data cache ───────────────────────────────────────────────
+    let allOrdersCache = [];
+
+    // ── Lieferkarte ─────────────────────────────────────────────
+    let orderMap = null;
+    let mapMarkerLayer = null;
+    let activeOrdersCache = [];
+    const geocodeCache = {};
+    const geocodeInFlight = {};
+    let mapRenderGen = 0;
+
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function geocodeAddress(address) {
+      if (geocodeCache[address] !== undefined) return Promise.resolve(geocodeCache[address]);
+      if (geocodeInFlight[address]) return geocodeInFlight[address];
+      const promise = fetch(
+        'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(address),
+        { headers: { 'Accept-Language': 'de' } }
+      )
+        .then(res => res.json())
+        .then(data => {
+          const result = data.length ? { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } : null;
+          geocodeCache[address] = result;
+          delete geocodeInFlight[address];
+          return result;
+        })
+        .catch(() => {
+          geocodeCache[address] = null;
+          delete geocodeInFlight[address];
+          return null;
+        });
+      geocodeInFlight[address] = promise;
+      return promise;
+    }
+
+    function orderAddress(o) {
+      return `${o.strasse} ${o.hausnummer}, ${o.plz} ${o.stadt}`;
+    }
+
+    async function renderOrderMap(orders) {
+      const gen = ++mapRenderGen;
+      if (!orderMap) {
+        orderMap = L.map('order-map', { scrollWheelZoom: false }).setView([53.5575, 9.9359], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 19
+        }).addTo(orderMap);
+        mapMarkerLayer = L.layerGroup().addTo(orderMap);
+        setTimeout(() => orderMap.invalidateSize(), 100);
+        orderMap.on('click', () => orderMap.scrollWheelZoom.enable());
+        document.getElementById('order-map').addEventListener('mouseleave', () => orderMap.scrollWheelZoom.disable());
+      }
+      mapMarkerLayer.clearLayers();
+      const statusEl = document.getElementById('map-status');
+      if (statusEl) statusEl.textContent = orders.length + ' aktive Bestellung' + (orders.length !== 1 ? 'en' : '');
+
+      try {
+        for (let i = 0; i < orders.length; i++) {
+          const o = orders[i];
+          const address = orderAddress(o);
+          if (i > 0) await sleep(1100);
+          if (mapRenderGen !== gen) return;
+          const coords = await geocodeAddress(address);
+          if (mapRenderGen !== gen) return;
+          if (coords && isFinite(coords.lat) && isFinite(coords.lng)) {
+            const statusLabels = { ausstehend: 'Ausstehend', bezahlt: 'Bezahlt', versendet: 'Verpackt' };
+            L.circleMarker([coords.lat, coords.lng], {
+              radius: 9, color: '#16a34a', weight: 2,
+              fillColor: '#22c55e', fillOpacity: 0.85
+            })
+              .bindPopup(
+                `<strong>${o.vorname} ${o.nachname}</strong><br>${o.strasse} ${o.hausnummer}<br>${o.plz} ${o.stadt}<br>`
+                + `<span style="color:#B8862A;">${o.groesse} · ${o.preis}</span><br>`
+                + `<em>${statusLabels[o.status] || o.status}</em>`
+              )
+              .addTo(mapMarkerLayer);
+          }
+        }
+        if (mapMarkerLayer.getLayers().length > 0) {
+          orderMap.fitBounds(mapMarkerLayer.getBounds(), { padding: [40, 40] });
+        }
+      } finally {
+        buildRouteList(orders);
+      }
+    }
+
+    // ── Lieferroute ──────────────────────────────────────────────
+    function haversine(lat1, lng1, lat2, lng2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2
+        + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function optimizeRoute(stops) {
+      const depot = { lat: 53.5623, lng: 9.8748 }; // Grotefendweg 15, 22589 Hamburg
+      const unvisited = [...stops];
+      const route = [];
+      let current = depot;
+      while (unvisited.length > 0) {
+        let nearestIdx = 0;
+        let nearestDist = Infinity;
+        unvisited.forEach((s, i) => {
+          const d = haversine(current.lat, current.lng, s.coords.lat, s.coords.lng);
+          if (d < nearestDist) { nearestDist = d; nearestIdx = i; }
+        });
+        route.push(unvisited[nearestIdx]);
+        current = unvisited[nearestIdx].coords;
+        unvisited.splice(nearestIdx, 1);
+      }
+      return route;
+    }
+
+    function buildRouteList(orders) {
+      const listEl = document.getElementById('route-list');
+      if (!listEl) return;
+
+      if (orders.length === 0) {
+        listEl.innerHTML = '<p class="text-gray-400 text-sm">Keine aktiven Bestellungen vorhanden.</p>';
+        return;
+      }
+
+      const stops = orders
+        .map(o => {
+          const coords = geocodeCache[orderAddress(o)];
+          return coords ? { order: o, coords, address: orderAddress(o) } : null;
+        })
+        .filter(Boolean);
+
+      if (stops.length === 0) {
+        listEl.innerHTML = '<p class="text-gray-400 text-sm">Keine Adressen konnten gefunden werden.</p>';
+        return;
+      }
+
+      const route = optimizeRoute(stops);
+      const skipped = orders.length - stops.length;
+
+      let html = '<ol class="flex flex-col gap-3">';
+      route.forEach((s, i) => {
+        const id = String(s.order.id).padStart(4, '0');
+        html += `<li class="flex items-baseline gap-3 text-sm">`
+          + `<span class="font-medium text-honey w-6 shrink-0">${i + 1}.</span>`
+          + `<span><span class="font-medium text-ink">#${id}</span>`
+          + ` <span class="text-gray-500">— ${s.address}</span></span>`
+          + `</li>`;
+      });
+      html += '</ol>';
+      if (skipped > 0) {
+        html += `<p class="text-xs text-gray-400 mt-4">${skipped} Adresse${skipped > 1 ? 'n' : ''}`
+          + ` konnte${skipped > 1 ? 'n' : ''} nicht gefunden werden.</p>`;
+      }
+      listEl.innerHTML = html;
+    }
+
+    async function loadAllData() {
+      const [activeRes, archivedRes, subsRes, stockRes] = await Promise.all([
+        sb.from('orders').select('*').eq('archived', false).order('created_at', { ascending: false }),
+        sb.from('orders').select('*').eq('archived', true).order('created_at', { ascending: false }),
+        sb.from('subscribers').select('*').order('created_at', { ascending: false }),
+        sb.from('stock').select('*')
+      ]);
+
+      const activeOrders   = activeRes.data   || [];
+      const archivedOrders = archivedRes.data || [];
+      const subs           = subsRes.data     || [];
+      const stock          = stockRes.data    || [];
+
+      allOrdersCache = [...activeOrders, ...archivedOrders];
+      activeOrdersCache = activeOrders;
+
+      document.getElementById('stat-total').textContent   = allOrdersCache.length;
+      document.getElementById('stat-pending').textContent = activeOrders.length;
+      document.getElementById('stat-subs').textContent    = subs.length;
+
+      allSubsCache = subs;
+      renderOrders(activeOrders);
+      renderArchived(archivedOrders);
+      renderSubscribers(subs);
+      loadStockInputs(stock);
+      renderStats(allOrdersCache);
+      renderOrderMap(activeOrders);
+    }
+
+    // ── Orders ──────────────────────────────────────────────────
+    function statusLabel(s) {
+      const map = { ausstehend: 'Ausstehend', bezahlt: 'Bezahlt', versendet: 'Verpackt', archiviert: 'Archiviert' };
+      return map[s] || s;
+    }
+
+    const COL = '70px 100px 130px 1fr 80px 90px 120px 190px';
+
+    function orderNum(id) {
+      return '#' + String(id).padStart(4, '0');
+    }
+
+    const TRASH_ICON = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+      <path d="M2 4h12M5.5 4V2.5h5V4M3 4l.9 9.5h8.2L13 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M6.5 7v4M9.5 7v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>`;
+
+    function renderOrders(orders) {
+      const body = document.getElementById('orders-body');
+
+      if (orders.length === 0) {
+        body.innerHTML = '<div class="px-6 py-12 text-center text-gray-400 text-sm">Noch keine Bestellungen vorhanden.</div>';
+        return;
+      }
+
+      body.innerHTML = orders.map(o => `
+        <!-- Desktop row -->
+        <div class="hidden md:grid items-center px-6 py-4 border-b border-gray-50 hover:bg-gray-50/50 transition-colors text-sm"
+          style="grid-template-columns:${COL};">
+          <span style="font-size:11px;font-weight:600;color:#B8862A;letter-spacing:0.04em;">${orderNum(o.id)}</span>
+          <span class="text-gray-400">${o.datum}</span>
+          <div>
+            <span class="text-ink font-medium">${o.vorname || ''} ${o.nachname || ''}</span>
+            ${o.email ? `<p style="font-size:11px;color:#9CA3AF;margin-top:2px;word-break:break-all;">${o.email}</p>` : ''}
+          </div>
+          <span class="text-ink">${o.strasse} ${o.hausnummer}, ${o.plz} ${o.stadt}</span>
+          <span class="text-ink">${o.groesse}</span>
+          <div>
+            <span class="font-medium text-ink">${o.preis}</span>
+            ${o.rabatt_code ? `<p style="margin-top:3px;"><span style="font-size:10px;background:rgba(234,179,8,0.15);color:#92400e;padding:2px 8px;border-radius:999px;font-weight:500;letter-spacing:0.03em;">Rabatt: ${o.rabatt_code}</span></p>` : ''}
+          </div>
+          <span><span class="status-badge status-${o.status}">${statusLabel(o.status)}</span></span>
+          <div class="flex items-center gap-2">
+            <select onchange="handleStatusChange(${o.id}, this)"
+              style="font-family:'DM Sans',sans-serif;font-size:12px;border:1px solid #E5E7EB;border-radius:999px;padding:5px 10px;background:white;color:#1A1A1A;cursor:pointer;outline:none;flex:1;min-width:0;">
+              <option value="ausstehend" ${o.status==='ausstehend'?'selected':''}>Ausstehend</option>
+              <option value="bezahlt"    ${o.status==='bezahlt'   ?'selected':''}>Bezahlt</option>
+              <option value="versendet"  ${o.status==='versendet' ?'selected':''}>Verpackt</option>
+              <option value="archivieren">Archivieren</option>
+            </select>
+            <button onclick="deleteOrder(${o.id})"
+              style="width:30px;height:30px;border-radius:50%;border:1px solid #FECACA;color:#EF4444;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background 0.15s;"
+              onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='white'">
+              ${TRASH_ICON}
+            </button>
+          </div>
+        </div>
+        <!-- Mobile card -->
+        <div class="md:hidden px-4 py-4 border-b border-gray-100 text-sm">
+          <div class="flex items-start justify-between mb-2">
+            <div>
+              <p style="font-size:10px;font-weight:600;color:#B8862A;letter-spacing:0.04em;margin-bottom:2px;">${orderNum(o.id)}</p>
+              <p class="font-medium text-ink">${o.vorname || ''} ${o.nachname || ''}</p>
+              ${o.email ? `<p class="text-gray-400 text-xs">${o.email}</p>` : ''}
+              <p class="text-gray-400 text-xs">${o.datum}</p>
+            </div>
+            <span class="status-badge status-${o.status}">${statusLabel(o.status)}</span>
+          </div>
+          <p class="text-gray-500 text-xs mb-1">${o.strasse} ${o.hausnummer}, ${o.plz} ${o.stadt}</p>
+          <p class="text-gray-500 text-xs mb-3">${o.groesse} · <strong class="text-ink">${o.preis}</strong>${o.rabatt_code ? ` <span style="font-size:10px;background:rgba(234,179,8,0.15);color:#92400e;padding:1px 7px;border-radius:999px;font-weight:500;">Rabatt: ${o.rabatt_code}</span>` : ''}</p>
+          <div class="flex items-center gap-2">
+            <select onchange="handleStatusChange(${o.id}, this)"
+              style="font-family:'DM Sans',sans-serif;font-size:12px;border:1px solid #E5E7EB;border-radius:999px;padding:5px 10px;background:white;color:#1A1A1A;cursor:pointer;outline:none;flex:1;">
+              <option value="ausstehend" ${o.status==='ausstehend'?'selected':''}>Ausstehend</option>
+              <option value="bezahlt"    ${o.status==='bezahlt'   ?'selected':''}>Bezahlt</option>
+              <option value="versendet"  ${o.status==='versendet' ?'selected':''}>Verpackt</option>
+              <option value="archivieren">Archivieren</option>
+            </select>
+            <button onclick="deleteOrder(${o.id})"
+              style="width:30px;height:30px;border-radius:50%;border:1px solid #FECACA;color:#EF4444;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
+              ${TRASH_ICON}
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderArchived(archived) {
+      const body  = document.getElementById('archived-body');
+      const label = document.getElementById('archive-toggle-label');
+      label.textContent = `Archiv anzeigen (${archived.length})`;
+
+      if (archived.length === 0) {
+        body.innerHTML = '<div class="px-6 py-10 text-center text-gray-400 text-sm">Keine archivierten Bestellungen.</div>';
+        return;
+      }
+
+      body.innerHTML = archived.map(o => `
+        <!-- Desktop row -->
+        <div class="hidden md:grid items-center px-6 py-4 border-b border-gray-50 text-sm"
+          style="grid-template-columns:${COL};">
+          <span style="font-size:11px;font-weight:600;color:#B8862A;letter-spacing:0.04em;opacity:0.6;">${orderNum(o.id)}</span>
+          <span class="text-gray-400">${o.datum}</span>
+          <div>
+            <span class="text-gray-400">${o.vorname || ''} ${o.nachname || ''}</span>
+            ${o.email ? `<p style="font-size:11px;color:#9CA3AF;margin-top:2px;word-break:break-all;">${o.email}</p>` : ''}
+          </div>
+          <span class="text-gray-400">${o.strasse} ${o.hausnummer}, ${o.plz} ${o.stadt}</span>
+          <span class="text-gray-400">${o.groesse}</span>
+          <div>
+            <span class="text-gray-400">${o.preis}</span>
+            ${o.rabatt_code ? `<p style="margin-top:3px;"><span style="font-size:10px;background:rgba(234,179,8,0.10);color:#92400e;opacity:0.75;padding:2px 8px;border-radius:999px;font-weight:500;letter-spacing:0.03em;">Rabatt: ${o.rabatt_code}</span></p>` : ''}
+          </div>
+          <span><span class="status-badge" style="background:#F3F4F6;color:#9CA3AF;">Archiviert</span></span>
+          <div class="flex items-center gap-2">
+            <button onclick="unarchiveOrder(${o.id})"
+              style="font-family:'DM Sans',sans-serif;font-size:12px;border:1px solid #E5E7EB;border-radius:999px;padding:5px 10px;background:white;color:#374151;cursor:pointer;flex:1;min-width:0;transition:border-color 0.15s;"
+              onmouseover="this.style.borderColor='#B8862A';this.style.color='#B8862A'" onmouseout="this.style.borderColor='#E5E7EB';this.style.color='#374151'">
+              Wiederherstellen
+            </button>
+            <button onclick="deleteArchived(${o.id})"
+              style="width:30px;height:30px;border-radius:50%;border:1px solid #FECACA;color:#EF4444;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background 0.15s;"
+              onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='white'">
+              ${TRASH_ICON}
+            </button>
+          </div>
+        </div>
+        <!-- Mobile card -->
+        <div class="md:hidden px-4 py-4 border-b border-gray-100 text-sm">
+          <div class="flex items-start justify-between mb-2">
+            <div>
+              <p style="font-size:10px;font-weight:600;color:#B8862A;letter-spacing:0.04em;margin-bottom:2px;opacity:0.6;">${orderNum(o.id)}</p>
+              <p class="text-gray-400 font-medium">${o.vorname || ''} ${o.nachname || ''}</p>
+              ${o.email ? `<p class="text-gray-400 text-xs">${o.email}</p>` : ''}
+              <p class="text-gray-400 text-xs">${o.datum}</p>
+            </div>
+            <span class="status-badge" style="background:#F3F4F6;color:#9CA3AF;">Archiviert</span>
+          </div>
+          <p class="text-gray-400 text-xs mb-1">${o.strasse} ${o.hausnummer}, ${o.plz} ${o.stadt}</p>
+          <p class="text-gray-400 text-xs mb-3">${o.groesse} · ${o.preis}${o.rabatt_code ? ` <span style="font-size:10px;background:rgba(234,179,8,0.10);color:#92400e;opacity:0.75;padding:1px 7px;border-radius:999px;font-weight:500;">Rabatt: ${o.rabatt_code}</span>` : ''}</p>
+          <div class="flex items-center gap-2">
+            <button onclick="unarchiveOrder(${o.id})"
+              style="font-family:'DM Sans',sans-serif;font-size:12px;border:1px solid #E5E7EB;border-radius:999px;padding:5px 10px;background:white;color:#374151;cursor:pointer;flex:1;">
+              Wiederherstellen
+            </button>
+            <button onclick="deleteArchived(${o.id})"
+              style="width:30px;height:30px;border-radius:50%;border:1px solid #FECACA;color:#EF4444;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
+              ${TRASH_ICON}
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    let archiveOpen = false;
+    function toggleArchive() {
+      archiveOpen = !archiveOpen;
+      document.getElementById('archived-section').classList.toggle('hidden', !archiveOpen);
+      document.getElementById('archive-chevron').style.transform = archiveOpen ? 'rotate(90deg)' : '';
+    }
+
+    async function handleStatusChange(id, select) {
+      const val = select.value;
+      if (val === 'archivieren') { await archiveOrder(id); }
+      else { await setStatus(id, val); }
+    }
+
+    async function setStatus(id, status) {
+      await sb.from('orders').update({ status }).eq('id', id);
+      await loadAllData();
+    }
+
+    async function archiveOrder(id) {
+      await sb.from('orders').update({ archived: true }).eq('id', id);
+      await loadAllData();
+    }
+
+    async function unarchiveOrder(id) {
+      await sb.from('orders').update({ archived: false }).eq('id', id);
+      await loadAllData();
+    }
+
+    function deleteOrder(id) {
+      showConfirm(
+        'Bestellung löschen',
+        'Möchtest du diese Bestellung wirklich unwiderruflich löschen? Sie verschwindet auch aus den Statistiken.',
+        async () => { await sb.from('orders').delete().eq('id', id); await loadAllData(); }
+      );
+    }
+
+    function deleteArchived(id) {
+      showConfirm(
+        'Archivierte Bestellung löschen',
+        'Möchtest du diese archivierte Bestellung wirklich löschen? Löschen entfernt sie endgültig.',
+        async () => { await sb.from('orders').delete().eq('id', id); await loadAllData(); }
+      );
+    }
+
+    // ── Subscribers ─────────────────────────────────────────────
+    function renderSubscribers(subs) {
+      const body = document.getElementById('subs-body');
+
+      if (subs.length === 0) {
+        body.innerHTML = '<div class="px-6 py-12 text-center text-gray-400 text-sm">Noch keine Abonnenten eingetragen.</div>';
+        return;
+      }
+
+      body.innerHTML = subs.map(s => `
+        <div class="grid items-center px-6 py-4 border-b border-gray-50 hover:bg-gray-50/50 transition-colors text-sm"
+          style="grid-template-columns: 1fr 120px 80px;">
+          <span class="text-ink">${s.email}</span>
+          <span class="text-gray-400">${s.datum}</span>
+          <button onclick="deleteSub(${s.id})" class="text-xs text-red-500 hover:underline text-left">Löschen</button>
+        </div>
+      `).join('');
+    }
+
+    function deleteSub(id) {
+      showConfirm(
+        'Abonnenten löschen',
+        'Möchtest du diesen Newsletter-Abonnenten wirklich löschen?',
+        async () => { await sb.from('subscribers').delete().eq('id', id); await loadAllData(); }
+      );
+    }
+
+    function clearSubscribers() {
+      showConfirm(
+        'Alle Abonnenten löschen',
+        'Möchtest du wirklich alle Newsletter-Abonnenten löschen? Diese Aktion kann nicht rückgängig gemacht werden.',
+        async () => { await sb.from('subscribers').delete().gte('id', 1); await loadAllData(); }
+      );
+    }
+
+    // ── Stock ────────────────────────────────────────────────────
+    function loadStockInputs(stock) {
+      const map = {};
+      (stock || []).forEach(row => { map[row.variant] = row.quantity; });
+      document.getElementById('stock-350').value = map['350g'] ?? 12;
+      document.getElementById('stock-500').value = map['500g'] ?? 5;
+    }
+
+    async function saveStock() {
+      const v350 = parseInt(document.getElementById('stock-350').value) || 0;
+      const v500 = parseInt(document.getElementById('stock-500').value) || 0;
+      await Promise.all([
+        sb.from('stock').upsert({ variant: '350g', quantity: v350 }),
+        sb.from('stock').upsert({ variant: '500g', quantity: v500 })
+      ]);
+      const msg = document.getElementById('stock-saved');
+      msg.classList.remove('hidden');
+      setTimeout(() => msg.classList.add('hidden'), 3000);
+    }
+
+    // ── Statistics ───────────────────────────────────────────────
+    let currentPeriod = 'all';
+
+    const periodLabels = {
+      week:  'Letzte Woche',
+      month: 'Letzter Monat',
+      all:   'Gesamt'
+    };
+
+    function setStatPeriod(period) {
+      currentPeriod = period;
+      document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('period-' + period).classList.add('active');
+      renderStats(allOrdersCache);
+    }
+
+    function renderStats(orders) {
+      const now = new Date();
+
+      function parseDate(datum) {
+        const p = datum.split('.');
+        return p.length === 3 ? new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0])) : new Date(0);
+      }
+      function parsePrice(preis) {
+        return parseFloat((preis || '0').replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
+      }
+      function parseJars(groesse) {
+        const m = (groesse || '').match(/[×x]\s*(\d+)/i);
+        return m ? parseInt(m[1]) : 1;
+      }
+      function fmtPrice(n) {
+        return n.toFixed(2).replace('.', ',') + ' €';
+      }
+
+      const cutoff = currentPeriod === 'week'
+        ? new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000)
+        : currentPeriod === 'month'
+        ? new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        : new Date(0);
+
+      const label    = periodLabels[currentPeriod];
+      const filtered = orders.filter(o => parseDate(o.datum) >= cutoff);
+      const plzLabel = currentPeriod === 'all' ? '(Gesamt)' : '(' + label + ')';
+
+      let revenue = 0, jars = 0;
+      const plzCounts = {};
+
+      filtered.forEach(o => {
+        revenue += parsePrice(o.preis);
+        jars    += parseJars(o.groesse);
+        if (o.plz) plzCounts[o.plz] = (plzCounts[o.plz] || 0) + 1;
+      });
+
+      document.getElementById('stat-revenue').textContent        = fmtPrice(revenue);
+      document.getElementById('stat-jars').textContent           = jars;
+      document.getElementById('stat-orders-period').textContent  = filtered.length;
+      document.getElementById('stat-period-label').textContent   = label;
+      document.getElementById('stat-period-label-2').textContent = label;
+      document.getElementById('stat-period-label-3').textContent = label;
+      document.getElementById('plz-period-label').textContent    = plzLabel;
+
+      const chartEl    = document.getElementById('plz-chart');
+      const plzEntries = Object.entries(plzCounts).sort((a, b) => b[1] - a[1]);
+
+      if (plzEntries.length === 0) {
+        chartEl.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">Keine Bestellungen im gewählten Zeitraum.</p>';
+        return;
+      }
+
+      const maxCount = plzEntries[0][1];
+      chartEl.innerHTML = plzEntries.map(([plz, count]) => `
+        <div class="flex items-center gap-4 mb-4">
+          <span class="text-sm font-medium text-ink shrink-0" style="width:52px;">${plz}</span>
+          <div class="flex-1 rounded-full" style="background:#F3F4F6;height:8px;">
+            <div class="rounded-full" style="background:#B8862A;height:8px;width:${Math.round((count / maxCount) * 100)}%;transition:width 0.4s;"></div>
+          </div>
+          <span class="text-sm text-gray-400 shrink-0" style="width:120px;text-align:right;">${count} ${count === 1 ? 'Bestellung' : 'Bestellungen'}</span>
+        </div>
+      `).join('');
+    }
+
+    // ── Newsletter ──────────────────────────────────────────────
+    let allSubsCache = [];
+
+    function openNewsletterModal() {
+      const n = allSubsCache.length;
+      document.getElementById('nl-sub-count').textContent = n + ' Abonnenten erhalten diese E-Mail.';
+      document.getElementById('nl-send-btn').textContent  = 'An alle ' + n + ' Abonnenten senden';
+      document.getElementById('nl-send-btn').disabled = false;
+      document.getElementById('nl-status').textContent = '';
+      document.getElementById('nl-nachricht').value = '';
+      document.getElementById('newsletter-modal').classList.remove('hidden');
+      document.getElementById('nl-nachricht').focus();
+    }
+
+    function closeNewsletterModal() {
+      document.getElementById('newsletter-modal').classList.add('hidden');
+    }
+
+    async function sendNewsletter() {
+      const nachricht = document.getElementById('nl-nachricht').value.trim();
+      if (!nachricht) { document.getElementById('nl-nachricht').focus(); return; }
+
+      const subs = allSubsCache;
+      if (subs.length === 0) { alert('Keine Abonnenten vorhanden.'); return; }
+
+      const sendBtn = document.getElementById('nl-send-btn');
+      const status  = document.getElementById('nl-status');
+      sendBtn.disabled = true;
+
+      let ok = 0, errors = [];
+      for (const sub of subs) {
+        try {
+          await emailjs.send('service_knxwgs2', 'template_bb7403a', {
+            email:     sub.email,
+            nachricht: nachricht
+          });
+          ok++;
+        } catch (err) {
+          errors.push(sub.email);
+          console.error('✗ Fehler bei', sub.email, ':', err);
+        }
+        await new Promise(r => setTimeout(r, 150));
+        status.textContent = 'Gesendet: ' + (ok + errors.length) + ' / ' + subs.length;
+      }
+
+      sendBtn.textContent = 'Fertig!';
+      if (errors.length > 0) {
+        status.textContent = errors.length + ' fehlgeschlagen (' + errors.join(', ') + ') – F12 → Console für Details.';
+      } else {
+        status.textContent = '✓ ' + ok + ' E-Mail' + (ok !== 1 ? 's' : '') + ' versendet.';
+        setTimeout(closeNewsletterModal, 3500);
+      }
+    }
+
+    // Init
+    loadAllData();
+  </script>
+
+  <!-- Newsletter Modal -->
+  <div id="newsletter-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background:rgba(0,0,0,0.45);">
+    <div class="bg-white rounded-2xl shadow-xl mx-4 w-full" style="max-width:440px;">
+      <div class="p-8">
+        <h2 class="font-serif font-normal text-ink text-xl mb-1">Newsletter versenden</h2>
+        <p class="text-xs text-gray-400 mb-5" id="nl-sub-count"></p>
+        <textarea id="nl-nachricht" rows="5"
+          placeholder="Neuer Honig ist da! Ab sofort wieder Blütenhonig in 350g und 500g verfügbar…"
+          class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none mb-1"
+          style="font-family:'DM Sans',sans-serif;focus-border-color:#B8862A;"></textarea>
+        <p id="nl-status" class="text-xs text-gray-400 mb-4" style="min-height:16px;"></p>
+        <div class="flex gap-3">
+          <button id="nl-send-btn" onclick="sendNewsletter()"
+            class="flex-1 text-white text-sm font-medium py-3 rounded-full hover:opacity-90 transition-opacity"
+            style="background:#B8862A;font-family:'DM Sans',sans-serif;">
+            Senden
+          </button>
+          <button onclick="closeNewsletterModal()"
+            class="border border-gray-200 text-gray-500 text-sm py-3 px-6 rounded-full hover:bg-gray-50 transition-colors"
+            style="font-family:'DM Sans',sans-serif;">
+            Abbrechen
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="confirm-modal" class="fixed inset-0 z-50 hidden" style="background:rgba(0,0,0,0.45);">
+    <div class="flex items-center justify-center min-h-full px-4">
+      <div class="bg-white rounded-2xl p-8 shadow-xl" style="max-width:400px;width:100%;">
+        <h3 class="font-serif text-xl text-ink mb-3" id="confirm-title">Löschen bestätigen</h3>
+        <p class="text-sm leading-relaxed mb-8" style="color:#6b7280;" id="confirm-text">Möchtest du das wirklich löschen?</p>
+        <div class="flex gap-3">
+          <button onclick="confirmCancel()"
+            class="flex-1 border border-gray-300 text-ink text-sm font-medium py-3 rounded-full hover:bg-gray-50 transition-colors"
+            style="font-family:'DM Sans',sans-serif;">
+            Abbrechen
+          </button>
+          <button onclick="confirmOk()"
+            class="flex-1 text-white text-sm font-medium py-3 rounded-full hover:opacity-90 transition-opacity"
+            style="background:#dc2626;font-family:'DM Sans',sans-serif;">
+            Löschen
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

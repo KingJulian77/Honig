@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Anmeldung – Honig aus Hochkamp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: '#F5F0EB',
+            honey: '#B8862A',
+            ink:   '#1A1A1A',
+          },
+          fontFamily: {
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+            sans:  ['"DM Sans"', 'system-ui', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background-color: #F5F0EB; color: #1A1A1A; }
+    input:focus { outline: none; border-color: #B8862A; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center px-4">
+
+  <!-- Logo -->
+  <a href="index.html" class="mb-8">
+    <div class="w-16 h-16 rounded-full overflow-hidden shadow-sm">
+      <img src="brand-assets-photos/Logo.png" alt="Logo" style="width:100%;height:100%;object-fit:cover;">
+    </div>
+  </a>
+
+  <!-- Card -->
+  <div class="bg-white border border-gray-200 rounded-2xl p-10 w-full" style="max-width:420px;">
+
+    <p class="text-honey text-[11px] tracking-[0.2em] uppercase mb-3 font-sans text-center">Geschützter Bereich</p>
+    <h1 class="font-serif font-normal text-ink text-2xl text-center mb-8">Admin Anmeldung</h1>
+
+    <form id="login-form" novalidate>
+
+      <!-- Username -->
+      <div class="mb-4">
+        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">E-Mail</label>
+        <input
+          type="email"
+          id="username"
+          placeholder="E-Mail-Adresse eingeben"
+          class="w-full border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream transition-colors"
+          autocomplete="email"
+        >
+      </div>
+
+      <!-- Password -->
+      <div class="mb-8">
+        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Passwort</label>
+        <input
+          type="password"
+          id="password"
+          placeholder="Passwort eingeben"
+          class="w-full border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream transition-colors"
+          autocomplete="current-password"
+        >
+      </div>
+
+      <!-- Error -->
+      <div id="login-error" class="hidden rounded-xl p-4 mb-6 border text-center"
+        style="background:rgba(220,38,38,0.05); border-color:rgba(220,38,38,0.25);">
+        <p class="text-sm font-medium" style="color:#b91c1c;">
+          Falscher Benutzername oder falsches Passwort.
+        </p>
+      </div>
+
+      <!-- Submit -->
+      <button
+        type="submit"
+        class="w-full bg-honey text-white text-sm font-sans font-medium py-4 rounded-full hover:opacity-90 transition-opacity"
+        style="letter-spacing:0.02em;"
+      >
+        Anmelden →
+      </button>
+
+    </form>
+
+  </div>
+
+  <!-- Back link -->
+  <a href="index.html" class="mt-8 text-gray-400 text-xs hover:text-gray-600 transition-colors">
+    ← Zurück zur Website
+  </a>
+
+  <script>
+    // Input focus style
+    document.querySelectorAll('input').forEach(input => {
+      input.addEventListener('focus', () => input.style.borderColor = '#B8862A');
+      input.addEventListener('blur',  () => input.style.borderColor = '');
+    });
+
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const user = document.getElementById('username').value.trim();
+      const pass = document.getElementById('password').value;
+      const err  = document.getElementById('login-error');
+
+      // Admin credentials
+      if (user === 'hochkamphonig@gmail.com' && pass === 'F3tt3Bine') {
+        sessionStorage.setItem('adminLoggedIn', 'true');
+        window.location.href = 'admin-dashboard.html';
+      } else {
+        err.classList.remove('hidden');
+        document.getElementById('password').value = '';
+      }
+    });
+
+    // Redirect if already logged in
+    if (sessionStorage.getItem('adminLoggedIn') === 'true') {
+      window.location.href = 'admin-dashboard.html';
+    }
+  </script>
+
+</body>
+</html>

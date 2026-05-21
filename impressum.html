@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Impressum – Honig aus Hochkamp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="cookie-banner.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream:  '#F5F0EB',
+            honey:  '#B8862A',
+            forest: '#2D4A3E',
+            ink:    '#1A1A1A',
+          },
+          fontFamily: {
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+            sans:  ['"DM Sans"', 'system-ui', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background-color: #F5F0EB; color: #1A1A1A; }
+
+    /* Grain-Textur */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 999; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      opacity: 0.032;
+    }
+
+    /* Focus-Ring (WCAG AA) */
+    :focus-visible { outline: 2px solid #B8862A; outline-offset: 3px; border-radius: 2px; }
+
+    /* Cursor */
+    a, button, [role="button"] { cursor: pointer; }
+
+    /* Reduced-Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─── Navigation ─────────────────────────────────────────────── -->
+  <header class="sticky top-0 z-50 bg-cream border-b border-gray-200 shadow-[0_2px_12px_rgba(26,26,26,0.05)]">
+    <div class="max-w-screen-xl mx-auto px-5 md:px-10">
+      <!-- Desktop nav -->
+      <div class="hidden md:grid grid-cols-3 items-center h-[76px]">
+        <nav class="flex items-center gap-10">
+          <a href="index.html" class="text-ink text-[11px] font-medium tracking-[0.18em] uppercase hover:text-honey transition-colors duration-150">Startseite</a>
+          <a href="unser-honig.html" class="text-ink text-[11px] font-medium tracking-[0.18em] uppercase hover:text-honey transition-colors duration-150">Unser Honig</a>
+        </nav>
+        <div class="flex justify-center">
+          <a href="index.html">
+            <div class="w-[68px] h-[68px] rounded-full overflow-hidden shadow-[0_2px_10px_rgba(26,26,26,0.10)] hover:shadow-[0_4px_16px_rgba(26,26,26,0.15)] transition-shadow duration-200">
+              <img src="brand-assets-photos/Logo.png" alt="Honig aus Hochkamp – zur Startseite" style="width:100%;height:100%;object-fit:cover;">
+            </div>
+          </a>
+        </div>
+        <nav class="flex items-center justify-end gap-10">
+          <a href="index.html#warum" class="text-ink text-[11px] font-medium tracking-[0.18em] uppercase hover:text-honey transition-colors duration-150">Warum Regional?</a>
+          <a href="kontakt.html" class="text-ink text-[11px] font-medium tracking-[0.18em] uppercase hover:text-honey transition-colors duration-150">Kontakt</a>
+        </nav>
+      </div>
+      <!-- Mobile nav -->
+      <div class="flex md:hidden items-center justify-between h-[64px]">
+        <a href="index.html">
+          <div class="w-[48px] h-[48px] rounded-full overflow-hidden shadow-[0_2px_8px_rgba(26,26,26,0.10)]">
+            <img src="brand-assets-photos/Logo.png" alt="Honig aus Hochkamp – zur Startseite" style="width:100%;height:100%;object-fit:cover;">
+          </div>
+        </a>
+        <nav class="flex items-center gap-5">
+          <a href="index.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Start</a>
+          <a href="unser-honig.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Honig</a>
+          <a href="kontakt.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Kontakt</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── Page Header ─────────────────────────────────────────── -->
+  <section class="py-14 text-center border-b border-gray-200">
+    <p class="text-honey text-[11px] tracking-[0.2em] uppercase mb-4 font-sans">Rechtliches</p>
+    <h1 class="font-serif font-normal text-ink" style="font-size:clamp(32px,3.5vw,48px);">
+      Impressum
+    </h1>
+  </section>
+
+  <!-- ─── Impressum Content ────────────────────────────────────── -->
+  <section class="py-20">
+    <div class="mx-auto px-6" style="max-width:680px;">
+
+      <div class="mb-10">
+        <p class="text-honey text-[11px] tracking-[0.2em] uppercase mb-4 font-sans">Angaben gemäß § 5 TMG</p>
+        <p class="text-ink font-medium text-sm mb-1.5">Julian Biegert</p>
+        <p class="text-gray-500 text-sm leading-relaxed">[Straße und Hausnummer]</p>
+        <p class="text-gray-500 text-sm leading-relaxed">[PLZ] Hamburg</p>
+      </div>
+
+      <div class="border-t border-gray-200 pt-10 mb-10">
+        <p class="text-honey text-[11px] tracking-[0.2em] uppercase mb-4 font-sans">Kontakt</p>
+        <p class="text-gray-500 text-sm mb-1.5 leading-relaxed">
+          E-Mail:
+          <a href="mailto:hochkamphonig@gmail.com" class="text-ink hover:text-honey transition-colors duration-150">
+            hochkamphonig@gmail.com
+          </a>
+        </p>
+      </div>
+
+      <div class="border-t border-gray-200 pt-10 mb-10">
+        <p class="text-honey text-[11px] tracking-[0.2em] uppercase mb-4 font-sans">Hinweis zur Kleinunternehmerregelung</p>
+        <p class="text-gray-500 text-sm leading-relaxed">
+          Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.
+        </p>
+      </div>
+
+      <div class="border-t border-gray-200 pt-10 mb-10">
+        <p class="text-honey text-[11px] tracking-[0.2em] uppercase mb-4 font-sans">Haftung für Inhalte</p>
+        <p class="text-gray-500 text-sm leading-relaxed">
+          Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den
+          allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht
+          verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen
+          zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen.
+        </p>
+      </div>
+
+      <div class="border-t border-gray-200 pt-10 mb-12">
+        <p class="text-honey text-[11px] tracking-[0.2em] uppercase mb-4 font-sans">Haftung für Links</p>
+        <p class="text-gray-500 text-sm leading-relaxed">
+          Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben.
+          Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der
+          verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich.
+        </p>
+      </div>
+
+      <a href="index.html" class="inline-flex items-center gap-2 text-honey text-sm font-medium hover:opacity-75 active:opacity-60 transition-opacity duration-150">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Zurück zur Startseite
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ─── Footer ─────────────────────────────────────────────── -->
+  <footer class="bg-cream border-t border-gray-200">
+    <div class="max-w-screen-xl mx-auto px-5 md:px-10 py-16">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20">
+        <div>
+          <p class="text-ink text-sm font-medium mb-5">Honig aus Hochkamp</p>
+          <nav class="flex flex-col gap-3">
+            <a href="index.html" class="text-gray-500 text-sm hover:text-ink transition-colors duration-150">Startseite</a>
+            <a href="unser-honig.html" class="text-gray-500 text-sm hover:text-ink transition-colors duration-150">Unser Honig</a>
+            <a href="index.html#warum" class="text-gray-500 text-sm hover:text-ink transition-colors duration-150">Warum Regional?</a>
+            <a href="kontakt.html" class="text-gray-500 text-sm hover:text-ink transition-colors duration-150">Kontakt</a>
+            <a href="impressum.html" class="text-honey text-sm">Impressum</a>
+          </nav>
+        </div>
+      </div>
+    </div>
+    <div class="border-t border-gray-200">
+      <div class="max-w-screen-xl mx-auto px-10 py-5 text-center">
+        <p class="text-gray-400 text-sm">© 2025 Honig aus Hochkamp. Alle Rechte vorbehalten.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
