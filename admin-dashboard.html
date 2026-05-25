@@ -239,8 +239,25 @@
     <!-- Lieferroute -->
     <section class="mb-12 bg-white rounded-2xl overflow-hidden" style="box-shadow:0 2px 12px rgba(0,0,0,0.07);">
       <div class="px-6 py-5 border-b border-gray-100">
-        <h2 class="font-serif font-normal text-ink text-2xl">Lieferroute</h2>
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div class="flex items-center gap-2">
+            <h2 class="font-serif font-normal text-ink text-2xl">Lieferroute</h2>
+            <button onclick="toggleDepotEdit()" title="Depot-Adresse ändern"
+              style="color:#B8862A;background:none;border:none;cursor:pointer;font-size:15px;padding:2px 6px;border-radius:6px;line-height:1;opacity:0.7;"
+              onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">✎</button>
+          </div>
+          <span style="font-size:11px;font-weight:500;padding:5px 12px;border-radius:999px;border:1px solid #B8862A;color:#B8862A;background:#fffbeb;font-family:'DM Sans',sans-serif;">Alle aktiven</span>
+        </div>
+        <div id="depot-edit-row" style="display:none;margin-top:12px;align-items:center;gap:8px;">
+          <input type="text" id="depot-input" placeholder="z. B. Grotefendweg 15, 22589 Hamburg"
+            style="flex:1;font-size:13px;border:1px solid #e5e7eb;border-radius:8px;padding:6px 12px;outline:none;font-family:'DM Sans',sans-serif;" />
+          <button onclick="saveDepot()"
+            style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#B8862A;background:none;border:1px solid #B8862A;cursor:pointer;padding:6px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;">
+            Speichern
+          </button>
+        </div>
       </div>
+      <div id="route-stats" style="display:none;padding:14px 24px 6px;font-size:12px;color:#9ca3af;gap:16px;flex-wrap:wrap;align-items:center;"></div>
       <div id="route-list" class="px-6 py-6">
         <p class="text-gray-400 text-sm">Route wird geladen…</p>
       </div>
@@ -327,6 +344,45 @@
     const geocodeInFlight = {};
     let mapRenderGen = 0;
 
+    // ── Lieferroute state ────────────────────────────────────────
+    let depotCoords = { lat: 53.5623, lng: 9.8748 };
+    let depotLabel = 'Grotefendweg 15, 22589 Hamburg';
+    (() => {
+      const sLat = parseFloat(localStorage.getItem('depotLat'));
+      const sLng = parseFloat(localStorage.getItem('depotLng'));
+      const sAddr = localStorage.getItem('depotAddress');
+      if (sAddr && isFinite(sLat) && isFinite(sLng)) {
+        depotCoords = { lat: sLat, lng: sLng };
+        depotLabel = sAddr;
+      }
+    })();
+
+    function toggleDepotEdit() {
+      const row = document.getElementById('depot-edit-row');
+      const inp = document.getElementById('depot-input');
+      if (row.style.display === 'flex') {
+        row.style.display = 'none';
+      } else {
+        row.style.display = 'flex';
+        inp.value = depotLabel;
+        inp.focus();
+      }
+    }
+    async function saveDepot() {
+      const inp = document.getElementById('depot-input');
+      const addr = inp.value.trim();
+      if (!addr) return;
+      const coords = await geocodeAddress(addr);
+      if (!coords) { alert('Adresse konnte nicht gefunden werden.'); return; }
+      depotCoords = coords;
+      depotLabel = addr;
+      localStorage.setItem('depotAddress', addr);
+      localStorage.setItem('depotLat', String(coords.lat));
+      localStorage.setItem('depotLng', String(coords.lng));
+      document.getElementById('depot-edit-row').style.display = 'none';
+      buildRouteList(activeOrdersCache);
+    }
+
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
     function geocodeAddress(address) {
@@ -344,7 +400,7 @@
           return result;
         })
         .catch(() => {
-          geocodeCache[address] = null;
+          // Transiente Fehler (Netzwerk, Rate-Limit) nicht cachen → nächster Aufruf versucht es neu
           delete geocodeInFlight[address];
           return null;
         });
@@ -374,10 +430,12 @@
       if (statusEl) statusEl.textContent = orders.length + ' aktive Bestellung' + (orders.length !== 1 ? 'en' : '');
 
       try {
+        let failedCount = 0;
         for (let i = 0; i < orders.length; i++) {
           const o = orders[i];
           const address = orderAddress(o);
-          if (i > 0) await sleep(1100);
+          const isCached = geocodeCache[address] !== undefined || geocodeInFlight[address];
+          if (i > 0 && !isCached) await sleep(1100);
           if (mapRenderGen !== gen) return;
           const coords = await geocodeAddress(address);
           if (mapRenderGen !== gen) return;
@@ -393,13 +451,20 @@
                 + `<em>${statusLabels[o.status] || o.status}</em>`
               )
               .addTo(mapMarkerLayer);
+          } else {
+            failedCount++;
           }
         }
         if (mapMarkerLayer.getLayers().length > 0) {
           orderMap.fitBounds(mapMarkerLayer.getBounds(), { padding: [40, 40] });
         }
+        if (statusEl) {
+          const loaded = orders.length - failedCount;
+          statusEl.textContent = loaded + ' Bestellung' + (loaded !== 1 ? 'en' : '') + ' geladen'
+            + (failedCount > 0 ? ' · ' + failedCount + ' Adresse' + (failedCount !== 1 ? 'n' : '') + ' nicht gefunden' : '');
+        }
       } finally {
-        buildRouteList(orders);
+        buildRouteList(activeOrdersCache);
       }
     }
 
@@ -413,14 +478,12 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    function optimizeRoute(stops) {
-      const depot = { lat: 53.5623, lng: 9.8748 }; // Grotefendweg 15, 22589 Hamburg
+    function optimizeRouteHaversine(stops) {
       const unvisited = [...stops];
       const route = [];
-      let current = depot;
+      let current = depotCoords;
       while (unvisited.length > 0) {
-        let nearestIdx = 0;
-        let nearestDist = Infinity;
+        let nearestIdx = 0, nearestDist = Infinity;
         unvisited.forEach((s, i) => {
           const d = haversine(current.lat, current.lng, s.coords.lat, s.coords.lng);
           if (d < nearestDist) { nearestDist = d; nearestIdx = i; }
@@ -432,12 +495,63 @@
       return route;
     }
 
-    function buildRouteList(orders) {
+    async function fetchOSRMMatrix(points) {
+      const coords = points.map(p => `${p.lng},${p.lat}`).join(';');
+      try {
+        const res = await fetch(
+          `https://router.project-osrm.org/table/v1/driving/${coords}?annotations=distance,duration`,
+          { signal: AbortSignal.timeout(8000) }
+        );
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.code === 'Ok' ? { distances: data.distances, durations: data.durations } : null;
+      } catch { return null; }
+    }
+
+    function greedyNN(n, dist) {
+      const unvisited = Array.from({ length: n - 1 }, (_, i) => i + 1);
+      const route = [];
+      let cur = 0;
+      while (unvisited.length > 0) {
+        let bestI = 0, bestD = Infinity;
+        unvisited.forEach((idx, i) => { if (dist[cur][idx] < bestD) { bestD = dist[cur][idx]; bestI = i; } });
+        route.push(unvisited[bestI]);
+        cur = unvisited[bestI];
+        unvisited.splice(bestI, 1);
+      }
+      return route;
+    }
+
+    function twoOpt(route, dist) {
+      const r = [...route];
+      const n = r.length;
+      let improved = true;
+      while (improved) {
+        improved = false;
+        for (let i = 0; i < n - 1; i++) {
+          for (let j = i + 1; j < n; j++) {
+            const prevI = i === 0 ? 0 : r[i - 1];
+            const nextJ = j < n - 1 ? r[j + 1] : -1;
+            let gain = dist[prevI][r[i]] - dist[prevI][r[j]];
+            if (nextJ !== -1) gain += dist[r[j]][nextJ] - dist[r[i]][nextJ];
+            if (gain > 0.1) {
+              r.splice(i, j - i + 1, ...r.slice(i, j + 1).reverse());
+              improved = true;
+            }
+          }
+        }
+      }
+      return r;
+    }
+
+    async function buildRouteList(orders) {
       const listEl = document.getElementById('route-list');
+      const statsEl = document.getElementById('route-stats');
       if (!listEl) return;
 
       if (orders.length === 0) {
-        listEl.innerHTML = '<p class="text-gray-400 text-sm">Keine aktiven Bestellungen vorhanden.</p>';
+        listEl.innerHTML = '<p class="text-gray-400 text-sm">Keine aktiven Bestellungen für diesen Filter.</p>';
+        if (statsEl) statsEl.style.display = 'none';
         return;
       }
 
@@ -450,11 +564,44 @@
 
       if (stops.length === 0) {
         listEl.innerHTML = '<p class="text-gray-400 text-sm">Keine Adressen konnten gefunden werden.</p>';
+        if (statsEl) statsEl.style.display = 'none';
         return;
       }
 
-      const route = optimizeRoute(stops);
+      const allPoints = [depotCoords, ...stops.map(s => s.coords)];
+      const matrix = await fetchOSRMMatrix(allPoints);
+
+      let route, totalDistKm, totalDurMin, useEstimate;
+
+      if (matrix) {
+        const idxs = twoOpt(greedyNN(allPoints.length, matrix.distances), matrix.distances);
+        route = idxs.map(idx => stops[idx - 1]);
+        let dM = 0, dS = 0, prev = 0;
+        for (const idx of idxs) { dM += matrix.distances[prev][idx]; dS += matrix.durations[prev][idx]; prev = idx; }
+        totalDistKm = dM / 1000;
+        totalDurMin = Math.round(dS / 60);
+        useEstimate = false;
+      } else {
+        route = optimizeRouteHaversine(stops);
+        let km = 0, cur = depotCoords;
+        for (const s of route) { km += haversine(cur.lat, cur.lng, s.coords.lat, s.coords.lng); cur = s.coords; }
+        totalDistKm = km;
+        totalDurMin = Math.round((km / 30) * 60);
+        useEstimate = true;
+      }
+
       const skipped = orders.length - stops.length;
+
+      if (statsEl) {
+        const distStr = totalDistKm.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+        const note = useEstimate ? ' <span style="color:#B8862A;">(Schätzung)</span>' : '';
+        statsEl.innerHTML = `<span>Gesamtstrecke: ~${distStr} km${note}</span>`
+          + `<span style="color:#d1d5db;">|</span>`
+          + `<span>Fahrzeit: ~${totalDurMin} min${note}</span>`
+          + `<span style="color:#d1d5db;">|</span>`
+          + `<span>${route.length} Stopp${route.length !== 1 ? 's' : ''}</span>`;
+        statsEl.style.display = 'flex';
+      }
 
       let html = '<ol class="flex flex-col gap-3">';
       route.forEach((s, i) => {
