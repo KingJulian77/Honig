@@ -231,7 +231,13 @@
     <section class="mb-12 bg-white rounded-2xl overflow-hidden" style="box-shadow:0 2px 12px rgba(0,0,0,0.07);isolation:isolate;z-index:0;position:relative;">
       <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
         <h2 class="font-serif font-normal text-ink text-2xl">Lieferkarte</h2>
-        <span class="text-xs text-gray-400" id="map-status">Karte wird geladen…</span>
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-gray-400" id="map-status">Karte wird geladen…</span>
+          <button onclick="reloadMap()" title="Karte neu laden"
+            style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#B8862A;background:none;border:1px solid #B8862A;cursor:pointer;padding:4px 10px;border-radius:6px;font-family:'DM Sans',sans-serif;">
+            ↺ Neu laden
+          </button>
+        </div>
       </div>
       <div id="order-map" style="height:420px;"></div>
     </section>
@@ -246,7 +252,18 @@
               style="color:#B8862A;background:none;border:none;cursor:pointer;font-size:15px;padding:2px 6px;border-radius:6px;line-height:1;opacity:0.7;"
               onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">✎</button>
           </div>
-          <span style="font-size:11px;font-weight:500;padding:5px 12px;border-radius:999px;border:1px solid #B8862A;color:#B8862A;background:#fffbeb;font-family:'DM Sans',sans-serif;">Alle aktiven</span>
+          <div class="flex items-center gap-3">
+            <span style="font-size:11px;font-weight:500;padding:5px 12px;border-radius:999px;border:1px solid #B8862A;color:#B8862A;background:#fffbeb;font-family:'DM Sans',sans-serif;">Alle aktiven</span>
+            <button onclick="openGoogleMapsRoute()" title="Route in Google Maps öffnen"
+              style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#B8862A;background:none;border:1px solid #B8862A;cursor:pointer;padding:5px 12px;border-radius:999px;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:5px;"
+              onmouseover="this.style.background='#fffbeb'" onmouseout="this.style.background='none'">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                <circle cx="12" cy="9" r="2.5"/>
+              </svg>
+              Google Maps
+            </button>
+          </div>
         </div>
         <div id="depot-edit-row" style="display:none;margin-top:12px;align-items:center;gap:8px;">
           <input type="text" id="depot-input" placeholder="z. B. Grotefendweg 15, 22589 Hamburg"
@@ -345,6 +362,7 @@
     let mapRenderGen = 0;
 
     // ── Lieferroute state ────────────────────────────────────────
+    let lastComputedRoute = null;
     let depotCoords = { lat: 53.5623, lng: 9.8748 };
     let depotLabel = 'Grotefendweg 15, 22589 Hamburg';
     (() => {
@@ -385,11 +403,17 @@
 
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-    function geocodeAddress(address) {
+    function geocodeAddress(address, o) {
       if (geocodeCache[address] !== undefined) return Promise.resolve(geocodeCache[address]);
       if (geocodeInFlight[address]) return geocodeInFlight[address];
+
+      // Strukturierte Parameter → zuverlässiger als Free-text bei Sonderzeichen / neuen Straßen
+      const params = o
+        ? new URLSearchParams({ format: 'json', limit: '1', street: `${o.hausnummer} ${o.strasse}`, postalcode: o.plz, city: o.stadt, countrycodes: 'de' })
+        : new URLSearchParams({ format: 'json', limit: '1', q: address });
+
       const promise = fetch(
-        'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(address),
+        'https://nominatim.openstreetmap.org/search?' + params,
         { headers: { 'Accept-Language': 'de' } }
       )
         .then(res => res.json())
@@ -412,6 +436,21 @@
       return `${o.strasse} ${o.hausnummer}, ${o.plz} ${o.stadt}`;
     }
 
+    function reloadMap() {
+      // Geocode-Cache leeren → alle Adressen werden beim nächsten Render neu abgefragt
+      Object.keys(geocodeCache).forEach(k => delete geocodeCache[k]);
+      renderOrderMap(activeOrdersCache);
+    }
+
+    function jitterCoords(lat, lng, usedCoords) {
+      const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+      if (!usedCoords[key]) { usedCoords[key] = 0; }
+      const n = usedCoords[key]++;
+      if (n === 0) return { lat, lng };
+      const angle = (n * 137.5) * Math.PI / 180;  // goldener Winkel → gleichmäßige Streuung
+      return { lat: lat + Math.cos(angle) * 0.00007, lng: lng + Math.sin(angle) * 0.00007 };
+    }
+
     async function renderOrderMap(orders) {
       const gen = ++mapRenderGen;
       if (!orderMap) {
@@ -431,17 +470,19 @@
 
       try {
         let failedCount = 0;
+        const usedCoords = {};
         for (let i = 0; i < orders.length; i++) {
           const o = orders[i];
           const address = orderAddress(o);
           const isCached = geocodeCache[address] !== undefined || geocodeInFlight[address];
           if (i > 0 && !isCached) await sleep(1100);
           if (mapRenderGen !== gen) return;
-          const coords = await geocodeAddress(address);
+          const coords = await geocodeAddress(address, o);
           if (mapRenderGen !== gen) return;
           if (coords && isFinite(coords.lat) && isFinite(coords.lng)) {
             const statusLabels = { ausstehend: 'Ausstehend', bezahlt: 'Bezahlt', versendet: 'Verpackt' };
-            L.circleMarker([coords.lat, coords.lng], {
+            const { lat, lng } = jitterCoords(coords.lat, coords.lng, usedCoords);
+            L.circleMarker([lat, lng], {
               radius: 9, color: '#16a34a', weight: 2,
               fillColor: '#22c55e', fillOpacity: 0.85
             })
@@ -550,6 +591,7 @@
       if (!listEl) return;
 
       if (orders.length === 0) {
+        lastComputedRoute = null;
         listEl.innerHTML = '<p class="text-gray-400 text-sm">Keine aktiven Bestellungen für diesen Filter.</p>';
         if (statsEl) statsEl.style.display = 'none';
         return;
@@ -563,6 +605,7 @@
         .filter(Boolean);
 
       if (stops.length === 0) {
+        lastComputedRoute = null;
         listEl.innerHTML = '<p class="text-gray-400 text-sm">Keine Adressen konnten gefunden werden.</p>';
         if (statsEl) statsEl.style.display = 'none';
         return;
@@ -590,6 +633,7 @@
         useEstimate = true;
       }
 
+      lastComputedRoute = route;
       const skipped = orders.length - stops.length;
 
       if (statsEl) {
@@ -618,6 +662,16 @@
           + ` konnte${skipped > 1 ? 'n' : ''} nicht gefunden werden.</p>`;
       }
       listEl.innerHTML = html;
+    }
+
+    function openGoogleMapsRoute() {
+      if (!lastComputedRoute || lastComputedRoute.length === 0) {
+        alert('Route noch nicht berechnet. Bitte kurz warten.');
+        return;
+      }
+      const parts = [depotLabel, ...lastComputedRoute.map(s => s.address)];
+      const url = 'https://www.google.com/maps/dir/' + parts.map(encodeURIComponent).join('/');
+      window.open(url, '_blank');
     }
 
     async function loadAllData() {
