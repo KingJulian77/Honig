@@ -33,6 +33,9 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'DM Sans', sans-serif; background-color: #F5F0EB; color: #1A1A1A; }
 
+    .hero-img-pos { object-position: center 70%; }
+    @media (min-width: 768px) { .hero-img-pos { object-position: center; } }
+
     /* Grain-Textur */
     body::before {
       content: '';
@@ -120,7 +123,7 @@
       <img
         src="brand-assets-photos/Foto Stöcke.jpeg"
         alt="Bienenstock in den Gärten Hochkamps"
-        class="w-full h-full object-cover object-bottom md:object-center"
+        class="w-full h-full object-cover hero-img-pos"
         style="display:block;"
         loading="eager"
       >
