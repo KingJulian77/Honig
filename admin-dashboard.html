@@ -289,6 +289,10 @@
             style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#B8862A;background:none;border:none;cursor:pointer;padding:0;font-family:'DM Sans',sans-serif;">
             Newsletter versenden →
           </button>
+          <button id="select-mode-btn" onclick="toggleSelectMode()"
+            style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#B8862A;background:none;border:none;cursor:pointer;padding:0;font-family:'DM Sans',sans-serif;">
+            Auswahl senden →
+          </button>
           <button onclick="clearSubscribers()"
             class="text-xs text-gray-400 hover:text-red-600 transition-colors tracking-wide uppercase">
             Alle löschen
@@ -297,7 +301,7 @@
       </div>
 
       <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-        <div class="grid text-xs font-medium text-gray-400 uppercase tracking-wider px-6 py-4 border-b border-gray-100"
+        <div id="subs-header" class="grid text-xs font-medium text-gray-400 uppercase tracking-wider px-6 py-4 border-b border-gray-100"
           style="grid-template-columns: 1fr 120px 80px;">
           <span>E-Mail</span>
           <span>Eingetragen am</span>
@@ -308,6 +312,14 @@
             Noch keine Abonnenten eingetragen.
           </div>
         </div>
+      </div>
+
+      <div id="select-action-bar" class="hidden mt-4 flex items-center justify-between px-6 py-4 bg-amber-50 border border-amber-200 rounded-2xl">
+        <span id="select-count-label" class="text-sm text-amber-800" style="font-family:'DM Sans',sans-serif;">0 Abonnenten ausgewählt</span>
+        <button onclick="openNewsletterModalForSelected()"
+          style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#B8862A;background:none;border:none;cursor:pointer;padding:0;font-family:'DM Sans',sans-serif;">
+          Newsletter an Auswahl senden →
+        </button>
       </div>
     </section>
 
@@ -904,20 +916,81 @@
     // ── Subscribers ─────────────────────────────────────────────
     function renderSubscribers(subs) {
       const body = document.getElementById('subs-body');
+      const header = document.getElementById('subs-header');
 
       if (subs.length === 0) {
         body.innerHTML = '<div class="px-6 py-12 text-center text-gray-400 text-sm">Noch keine Abonnenten eingetragen.</div>';
         return;
       }
 
-      body.innerHTML = subs.map(s => `
-        <div class="grid items-center px-6 py-4 border-b border-gray-50 hover:bg-gray-50/50 transition-colors text-sm"
-          style="grid-template-columns: 1fr 120px 80px;">
-          <span class="text-ink">${s.email}</span>
-          <span class="text-gray-400">${s.datum}</span>
-          <button onclick="deleteSub(${s.id})" class="text-xs text-red-500 hover:underline text-left">Löschen</button>
-        </div>
-      `).join('');
+      if (selectMode) {
+        header.style.gridTemplateColumns = '32px 1fr 120px 80px';
+        header.innerHTML = `
+          <span><input type="checkbox" id="select-all-cb" onchange="toggleSelectAll(this)" style="cursor:pointer;accent-color:#B8862A;"></span>
+          <span>E-Mail</span>
+          <span>Eingetragen am</span>
+          <span>Aktion</span>
+        `;
+        body.innerHTML = subs.map(s => `
+          <div class="grid items-center px-6 py-4 border-b border-gray-50 hover:bg-gray-50/50 transition-colors text-sm"
+            style="grid-template-columns: 32px 1fr 120px 80px;">
+            <span><input type="checkbox" class="sub-checkbox" data-email="${s.email}" onchange="updateSelectCount()" style="cursor:pointer;accent-color:#B8862A;"></span>
+            <span class="text-ink">${s.email}</span>
+            <span class="text-gray-400">${s.datum}</span>
+            <button onclick="deleteSub(${s.id})" class="text-xs text-red-500 hover:underline text-left">Löschen</button>
+          </div>
+        `).join('');
+        updateSelectCount();
+      } else {
+        header.style.gridTemplateColumns = '1fr 120px 80px';
+        header.innerHTML = `
+          <span>E-Mail</span>
+          <span>Eingetragen am</span>
+          <span>Aktion</span>
+        `;
+        body.innerHTML = subs.map(s => `
+          <div class="grid items-center px-6 py-4 border-b border-gray-50 hover:bg-gray-50/50 transition-colors text-sm"
+            style="grid-template-columns: 1fr 120px 80px;">
+            <span class="text-ink">${s.email}</span>
+            <span class="text-gray-400">${s.datum}</span>
+            <button onclick="deleteSub(${s.id})" class="text-xs text-red-500 hover:underline text-left">Löschen</button>
+          </div>
+        `).join('');
+      }
+    }
+
+    function toggleSelectMode() {
+      selectMode = !selectMode;
+      const btn = document.getElementById('select-mode-btn');
+      const bar = document.getElementById('select-action-bar');
+      if (selectMode) {
+        btn.textContent = 'Auswahl abbrechen ×';
+        bar.classList.remove('hidden');
+      } else {
+        btn.textContent = 'Auswahl senden →';
+        bar.classList.add('hidden');
+      }
+      renderSubscribers(allSubsCache);
+    }
+
+    function toggleSelectAll(cb) {
+      document.querySelectorAll('.sub-checkbox').forEach(c => c.checked = cb.checked);
+      updateSelectCount();
+    }
+
+    function updateSelectCount() {
+      const checked = document.querySelectorAll('.sub-checkbox:checked').length;
+      document.getElementById('select-count-label').textContent = checked + ' Abonnent' + (checked !== 1 ? 'en' : '') + ' ausgewählt';
+    }
+
+    function getSelectedSubs() {
+      return Array.from(document.querySelectorAll('.sub-checkbox:checked')).map(cb => ({ email: cb.dataset.email }));
+    }
+
+    function openNewsletterModalForSelected() {
+      const selected = getSelectedSubs();
+      if (selected.length === 0) { alert('Bitte mindestens einen Abonnenten auswählen.'); return; }
+      openNewsletterModal(selected);
     }
 
     function deleteSub(id) {
@@ -1039,11 +1112,19 @@
 
     // ── Newsletter ──────────────────────────────────────────────
     let allSubsCache = [];
+    let selectMode = false;
+    let currentRecipients = [];
 
-    function openNewsletterModal() {
-      const n = allSubsCache.length;
-      document.getElementById('nl-sub-count').textContent = n + ' Abonnenten erhalten diese E-Mail.';
-      document.getElementById('nl-send-btn').textContent  = 'An alle ' + n + ' Abonnenten senden';
+    function openNewsletterModal(recipients) {
+      currentRecipients = recipients || allSubsCache;
+      const n = currentRecipients.length;
+      const isAll = !recipients;
+      document.getElementById('nl-sub-count').textContent = isAll
+        ? n + ' Abonnenten erhalten diese E-Mail.'
+        : n + ' ausgewählte Abonnenten erhalten diese E-Mail.';
+      document.getElementById('nl-send-btn').textContent = isAll
+        ? 'An alle ' + n + ' Abonnenten senden'
+        : 'An ' + n + ' Ausgewählte senden';
       document.getElementById('nl-send-btn').disabled = false;
       document.getElementById('nl-status').textContent = '';
       document.getElementById('nl-nachricht').value = '';
@@ -1059,8 +1140,8 @@
       const nachricht = document.getElementById('nl-nachricht').value.trim();
       if (!nachricht) { document.getElementById('nl-nachricht').focus(); return; }
 
-      const subs = allSubsCache;
-      if (subs.length === 0) { alert('Keine Abonnenten vorhanden.'); return; }
+      const subs = currentRecipients;
+      if (subs.length === 0) { alert('Keine Empfänger ausgewählt.'); return; }
 
       const sendBtn = document.getElementById('nl-send-btn');
       const status  = document.getElementById('nl-status');
@@ -1087,7 +1168,15 @@
         status.textContent = errors.length + ' fehlgeschlagen (' + errors.join(', ') + ') – F12 → Console für Details.';
       } else {
         status.textContent = '✓ ' + ok + ' E-Mail' + (ok !== 1 ? 's' : '') + ' versendet.';
-        setTimeout(closeNewsletterModal, 3500);
+        setTimeout(() => {
+          closeNewsletterModal();
+          if (selectMode) {
+            selectMode = false;
+            document.getElementById('select-mode-btn').textContent = 'Auswahl senden →';
+            document.getElementById('select-action-bar').classList.add('hidden');
+            renderSubscribers(allSubsCache);
+          }
+        }, 3500);
       }
     }
 
