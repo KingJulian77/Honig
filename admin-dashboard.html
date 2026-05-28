@@ -1127,9 +1127,11 @@
         : 'An ' + n + ' Ausgewählte senden';
       document.getElementById('nl-send-btn').disabled = false;
       document.getElementById('nl-status').textContent = '';
-      document.getElementById('nl-nachricht').value = '';
+      const ta = document.getElementById('nl-nachricht');
+      ta.value = 'Neuer Honig ist da! Ab sofort wieder Blütenhonig in 350g und 500g verfügbar…';
       document.getElementById('newsletter-modal').classList.remove('hidden');
-      document.getElementById('nl-nachricht').focus();
+      ta.focus();
+      ta.select();
     }
 
     function closeNewsletterModal() {
@@ -1191,7 +1193,6 @@
         <h2 class="font-serif font-normal text-ink text-xl mb-1">Newsletter versenden</h2>
         <p class="text-xs text-gray-400 mb-5" id="nl-sub-count"></p>
         <textarea id="nl-nachricht" rows="5"
-          placeholder="Neuer Honig ist da! Ab sofort wieder Blütenhonig in 350g und 500g verfügbar…"
           class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none mb-1"
           style="font-family:'DM Sans',sans-serif;focus-border-color:#B8862A;"></textarea>
         <p id="nl-status" class="text-xs text-gray-400 mb-4" style="min-height:16px;"></p>
