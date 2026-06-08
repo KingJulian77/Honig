@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="sb.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -99,32 +101,38 @@
   </a>
 
   <script>
+    // Redirect if already logged in
+    sb.auth.getSession().then(({ data: { session } }) => {
+      if (session) window.location.href = 'admin-dashboard.html';
+    });
+
     // Input focus style
     document.querySelectorAll('input').forEach(input => {
       input.addEventListener('focus', () => input.style.borderColor = '#B8862A');
       input.addEventListener('blur',  () => input.style.borderColor = '');
     });
 
-    document.getElementById('login-form').addEventListener('submit', function(e) {
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
       e.preventDefault();
-      const user = document.getElementById('username').value.trim();
-      const pass = document.getElementById('password').value;
-      const err  = document.getElementById('login-error');
+      const email = document.getElementById('username').value.trim();
+      const pass  = document.getElementById('password').value;
+      const err   = document.getElementById('login-error');
+      const btn   = e.submitter;
 
-      // Admin credentials
-      if (user === 'hochkamphonig@gmail.com' && pass === 'F3tt3Bine') {
-        sessionStorage.setItem('adminLoggedIn', 'true');
-        window.location.href = 'admin-dashboard.html';
-      } else {
+      btn.disabled = true;
+      btn.textContent = 'Anmelden …';
+
+      const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+
+      if (error) {
         err.classList.remove('hidden');
         document.getElementById('password').value = '';
+        btn.disabled = false;
+        btn.textContent = 'Anmelden →';
+      } else {
+        window.location.href = 'admin-dashboard.html';
       }
     });
-
-    // Redirect if already logged in
-    if (sessionStorage.getItem('adminLoggedIn') === 'true') {
-      window.location.href = 'admin-dashboard.html';
-    }
   </script>
 
 </body>

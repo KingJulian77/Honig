@@ -327,12 +327,13 @@
 
   <script>
     // Auth guard
-    if (sessionStorage.getItem('adminLoggedIn') !== 'true') {
-      window.location.href = 'admin-login.html';
-    }
+    (async () => {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) window.location.href = 'admin-login.html';
+    })();
 
-    function logout() {
-      sessionStorage.removeItem('adminLoggedIn');
+    async function logout() {
+      await sb.auth.signOut();
       window.location.href = 'index.html';
     }
 
