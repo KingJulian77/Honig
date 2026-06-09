@@ -148,8 +148,8 @@
         <!-- Product Image -->
         <div class="overflow-hidden md:sticky md:top-28 shadow-[0_4px_24px_rgba(26,26,26,0.09)]" style="border-radius:4px;">
           <img
-            src="https://placehold.co/700x700/d4a843/b8862a?text=+"
-            alt="Blütenhonig aus Hochkamp – Glas"
+            src="brand-assets-photos/Gläser.jpeg"
+            alt="Honig aus Hochkamp – Gläser"
             class="w-full object-cover"
             style="display:block;"
             loading="eager"
@@ -180,21 +180,21 @@
                 class="variant-btn active border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium"
                 data-price="7,00 €"
                 data-stock="12"
-                data-weight="350g"
+                data-weight="160g"
                 onclick="selectVariant(this)"
                 aria-pressed="true"
               >
-                350 g
+                160 g
               </button>
               <button
                 class="variant-btn border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium text-ink"
                 data-price="8,00 €"
                 data-stock="5"
-                data-weight="500g"
+                data-weight="375g"
                 onclick="selectVariant(this)"
                 aria-pressed="false"
               >
-                500 g
+                375 g
               </button>
             </div>
           </div>
@@ -214,7 +214,7 @@
           <!-- Price -->
           <div class="flex items-baseline gap-3 mb-1">
             <span class="font-serif font-normal text-ink" id="price-display" style="font-size:2rem;">7,00 €</span>
-            <span class="text-gray-400 text-sm" id="weight-display">350g Glas</span>
+            <span class="text-gray-400 text-sm" id="weight-display">160g Glas</span>
           </div>
           <p class="text-xs text-gray-400 mb-2">inkl. Versand</p>
           <p class="text-sm text-gray-400 mb-6" id="total-line" style="display:none;">
@@ -235,7 +235,7 @@
           <!-- CTA -->
           <a
             id="bestell-btn"
-            href="bestellen.html?groesse=350g&preis=7%2C00+%E2%82%AC"
+            href="bestellen.html?groesse=160g&preis=7%2C00+%E2%82%AC"
             class="flex items-center justify-center gap-2 bg-honey text-white text-sm font-sans font-medium px-9 py-4 rounded-full hover:opacity-90 active:opacity-80 transition-opacity duration-150 w-full mb-4"
             style="letter-spacing:0.01em;"
           >
@@ -479,7 +479,7 @@
       showToast('Danke! Wir melden uns, sobald neuer Honig verfügbar ist.');
     }
 
-    let currentStock = { '350g': 0, '500g': 0 };
+    let currentStock = { '160g': 0, '375g': 0 };
 
     function updateDisplay() {
       const btn = document.querySelector('.variant-btn.active');

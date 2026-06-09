@@ -139,9 +139,9 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8">
 
           <div>
-            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">350g Glas</label>
+            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">160g Glas</label>
             <div class="flex items-center gap-3">
-              <input type="number" id="stock-350" min="0"
+              <input type="number" id="stock-160" min="0"
                 class="w-28 border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream text-center focus:outline-none focus:border-honey"
                 style="font-family:'DM Sans',sans-serif;">
               <span class="text-gray-400 text-sm">Gläser</span>
@@ -149,9 +149,9 @@
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">500g Glas</label>
+            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">375g Glas</label>
             <div class="flex items-center gap-3">
-              <input type="number" id="stock-500" min="0"
+              <input type="number" id="stock-375" min="0"
                 class="w-28 border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream text-center focus:outline-none focus:border-honey"
                 style="font-family:'DM Sans',sans-serif;">
               <span class="text-gray-400 text-sm">Gläser</span>
@@ -1014,16 +1014,16 @@
     function loadStockInputs(stock) {
       const map = {};
       (stock || []).forEach(row => { map[row.variant] = row.quantity; });
-      document.getElementById('stock-350').value = map['350g'] ?? 12;
-      document.getElementById('stock-500').value = map['500g'] ?? 5;
+      document.getElementById('stock-160').value = map['160g'] ?? 12;
+      document.getElementById('stock-375').value = map['375g'] ?? 5;
     }
 
     async function saveStock() {
-      const v350 = parseInt(document.getElementById('stock-350').value) || 0;
-      const v500 = parseInt(document.getElementById('stock-500').value) || 0;
+      const v350 = parseInt(document.getElementById('stock-160').value) || 0;
+      const v500 = parseInt(document.getElementById('stock-375').value) || 0;
       await Promise.all([
-        sb.from('stock').upsert({ variant: '350g', quantity: v350 }),
-        sb.from('stock').upsert({ variant: '500g', quantity: v500 })
+        sb.from('stock').upsert({ variant: '160g', quantity: v350 }),
+        sb.from('stock').upsert({ variant: '375g', quantity: v500 })
       ]);
       const msg = document.getElementById('stock-saved');
       msg.classList.remove('hidden');
@@ -1129,7 +1129,7 @@
       document.getElementById('nl-send-btn').disabled = false;
       document.getElementById('nl-status').textContent = '';
       const ta = document.getElementById('nl-nachricht');
-      ta.value = 'Neuer Honig ist da! Ab sofort wieder Blütenhonig in 350g und 500g verfügbar…';
+      ta.value = 'Neuer Honig ist da! Ab sofort wieder Blütenhonig in 160g und 375g verfügbar…';
       document.getElementById('newsletter-modal').classList.remove('hidden');
       ta.focus();
       ta.select();
