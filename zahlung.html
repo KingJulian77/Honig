@@ -178,9 +178,10 @@
             id="qty"
             value="1"
             min="1"
+            disabled
             aria-label="Anzahl der Honiggläser"
-            class="border border-gray-300 rounded-xl px-4 py-3 text-sm bg-white transition-colors duration-150"
-            style="width:120px;"
+            class="border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 text-ink cursor-default"
+            style="width:120px; -moz-appearance:textfield; pointer-events:none;"
           >
         </div>
 
@@ -548,7 +549,6 @@
         }, { once: true });
       }
 
-      qtyInput.addEventListener('input', updatePrice);
       loadStock();
     }
 
