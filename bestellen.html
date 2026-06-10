@@ -161,19 +161,6 @@
             <p class="text-xs text-gray-400 mt-1">inkl. Versand</p>
           </div>
         </div>
-        <div class="mt-4 pt-4 border-t border-gray-100">
-          <p class="text-[11px] text-gray-400 uppercase tracking-[0.1em] mb-2.5">Honigtracht wählen</p>
-          <div class="flex gap-2">
-            <button id="tracht-frueh" onclick="setTracht('frühtracht')" type="button"
-              class="px-4 py-2 rounded-full text-sm border transition-colors duration-150 bg-honey text-white border-honey">
-              Frühtracht
-            </button>
-            <button id="tracht-sommer" onclick="setTracht('sommertracht')" type="button"
-              class="px-4 py-2 rounded-full text-sm border transition-colors duration-150 border-gray-300 text-gray-600 bg-white">
-              Sommertracht
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- Discount code -->
@@ -467,18 +454,7 @@
       updateSummaryDisplay();
     }
 
-    function setTracht(t) {
-      tracht = t;
-      const frueh  = document.getElementById('tracht-frueh');
-      const sommer = document.getElementById('tracht-sommer');
-      const isF    = t === 'frühtracht';
-      frueh.className  = 'px-4 py-2 rounded-full text-sm border transition-colors duration-150 ' + (isF  ? 'bg-honey text-white border-honey' : 'border-gray-300 text-gray-600 bg-white');
-      sommer.className = 'px-4 py-2 rounded-full text-sm border transition-colors duration-150 ' + (!isF ? 'bg-honey text-white border-honey' : 'border-gray-300 text-gray-600 bg-white');
-      updateSummaryDisplay();
-    }
-
     updateSummaryDisplay();
-    setTracht(tracht);
 
     // Pre-fill fields if returning from zahlung.html
     if (draft) {

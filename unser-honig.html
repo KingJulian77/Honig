@@ -84,6 +84,16 @@
       outline-offset: 3px;
     }
 
+    .variant-btn.unavailable,
+    .tracht-btn.unavailable {
+      background: #f3f4f6 !important;
+      border-color: #e5e7eb !important;
+      color: #9ca3af !important;
+      text-decoration: line-through;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
     .stock-bar-fill {
       height: 4px;
       border-radius: 2px;
@@ -593,11 +603,35 @@
       document.querySelectorAll('.tracht-btn').forEach(b => {
         b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false');
       });
+
+      // Mark tracht buttons as unavailable if out of stock for current size
+      document.querySelectorAll('.tracht-btn').forEach(b => {
+        const avail = (currentStock[weight + '-' + b.dataset.tracht] ?? 0) > 0;
+        b.classList.toggle('unavailable', !avail);
+        b.setAttribute('aria-disabled', avail ? 'false' : 'true');
+      });
+
+      // Mark variant buttons as unavailable if both tracts are out of stock
+      document.querySelectorAll('.variant-btn').forEach(b => {
+        const w = b.dataset.weight;
+        const total = (currentStock[w + '-frühtracht'] ?? 0) + (currentStock[w + '-sommertracht'] ?? 0);
+        b.classList.toggle('unavailable', total === 0);
+        b.setAttribute('aria-disabled', total > 0 ? 'false' : 'true');
+      });
     }
 
     function selectVariant(btn) {
       document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      const weight = btn.dataset.weight;
+      const activeTracht = document.querySelector('.tracht-btn.active');
+      if (activeTracht && (currentStock[weight + '-' + activeTracht.dataset.tracht] ?? 0) === 0) {
+        const other = document.querySelector('.tracht-btn:not(.active)');
+        if (other && (currentStock[weight + '-' + other.dataset.tracht] ?? 0) > 0) {
+          document.querySelectorAll('.tracht-btn').forEach(b => b.classList.remove('active'));
+          other.classList.add('active');
+        }
+      }
       updateDisplay();
     }
 
