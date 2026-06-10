@@ -90,8 +90,7 @@
       border-color: #e5e7eb !important;
       color: #9ca3af !important;
       text-decoration: line-through;
-      cursor: not-allowed;
-      pointer-events: none;
+      cursor: pointer;
     }
 
     .stock-bar-fill {
@@ -295,7 +294,7 @@
           <!-- Stock Notification Form (shown when sold out) -->
           <div id="stock-notify-form" class="hidden mt-6 p-5 rounded-2xl" style="background:#fdf8f0;border:1px solid #e8d5aa;">
             <p class="text-sm text-gray-600 mb-4 leading-relaxed">
-              Trag dich hier ein und wir benachrichtigen dich per E-Mail, sobald neuer Honig verfügbar ist.
+              Diese Sorte/Größe ist momentan leider ausverkauft. Trage dich bei unserem Newsletter ein und wir benachrichtigen dich, wenn wir neuen Honig da haben.
             </p>
             <div class="flex gap-3">
               <label for="stock-notify-email" class="sr-only">E-Mail-Adresse</label>
@@ -623,15 +622,6 @@
     function selectVariant(btn) {
       document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      const weight = btn.dataset.weight;
-      const activeTracht = document.querySelector('.tracht-btn.active');
-      if (activeTracht && (currentStock[weight + '-' + activeTracht.dataset.tracht] ?? 0) === 0) {
-        const other = document.querySelector('.tracht-btn:not(.active)');
-        if (other && (currentStock[weight + '-' + other.dataset.tracht] ?? 0) > 0) {
-          document.querySelectorAll('.tracht-btn').forEach(b => b.classList.remove('active'));
-          other.classList.add('active');
-        }
-      }
       updateDisplay();
     }
 
