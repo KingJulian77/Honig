@@ -429,7 +429,7 @@
     groesse = groesse || '160g';
     preis   = preis   || '7,00 €';
     anzahl  = anzahl  || 1;
-    let tracht = (draft && draft.tracht) || 'frühtracht';
+    let tracht = params.get('tracht') || (draft && draft.tracht) || 'frühtracht';
 
     const unitNum = parseFloat(preis.replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
     let rabattProzent = 0;

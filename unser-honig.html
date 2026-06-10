@@ -69,6 +69,21 @@
       outline-offset: 3px;
     }
 
+    .tracht-btn { transition: background 0.15s, border-color 0.15s, color 0.15s; }
+    .tracht-btn.active {
+      background: #B8862A;
+      border-color: #B8862A;
+      color: #fff;
+    }
+    .tracht-btn:not(.active):hover {
+      border-color: #B8862A;
+      color: #B8862A;
+    }
+    .tracht-btn:focus-visible {
+      outline: 2px solid #B8862A;
+      outline-offset: 3px;
+    }
+
     .stock-bar-fill {
       height: 4px;
       border-radius: 2px;
@@ -195,6 +210,29 @@
                 aria-pressed="false"
               >
                 375 g
+              </button>
+            </div>
+          </div>
+
+          <!-- Sorte selector -->
+          <div class="mb-8">
+            <p class="text-ink text-xs font-medium tracking-wider uppercase mb-4">Sorte wählen</p>
+            <div class="flex gap-3" id="tracht-buttons" role="group" aria-label="Honigtracht wählen">
+              <button
+                class="tracht-btn active border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium"
+                data-tracht="frühtracht"
+                onclick="selectTracht(this)"
+                aria-pressed="true"
+              >
+                Frühtracht
+              </button>
+              <button
+                class="tracht-btn border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium text-ink"
+                data-tracht="sommertracht"
+                onclick="selectTracht(this)"
+                aria-pressed="false"
+              >
+                Sommertracht
               </button>
             </div>
           </div>
@@ -479,7 +517,7 @@
       showToast('Danke! Wir melden uns, sobald neuer Honig verfügbar ist.');
     }
 
-    let currentStock = { '160g': 0, '375g': 0 };
+    let currentStock = { '160g-frühtracht': 0, '160g-sommertracht': 0, '375g-frühtracht': 0, '375g-sommertracht': 0 };
 
     function updateDisplay() {
       const btn = document.querySelector('.variant-btn.active');
@@ -488,7 +526,9 @@
       const price    = btn.dataset.price;
       const weight   = btn.dataset.weight;
       const maxStock = 20;
-      const stock    = currentStock[weight] ?? 0;
+      const trachtBtn = document.querySelector('.tracht-btn.active');
+      const tracht   = trachtBtn ? trachtBtn.dataset.tracht : 'frühtracht';
+      const stock    = currentStock[weight + '-' + tracht] ?? 0;
       const qtyInput = document.getElementById('qty-select');
       qtyInput.max   = stock > 0 ? stock : 1;
       if (stock > 0 && parseInt(qtyInput.value) > stock) qtyInput.value = stock;
@@ -541,18 +581,28 @@
         bestellBtn.style.opacity       = '';
         const g = encodeURIComponent(weight);
         const p = encodeURIComponent(price);
-        bestellBtn.href = `bestellen.html?groesse=${g}&preis=${p}&anzahl=${qty}`;
+        const t = encodeURIComponent(tracht);
+        bestellBtn.href = `bestellen.html?groesse=${g}&preis=${p}&anzahl=${qty}&tracht=${t}`;
         if (notifyForm) notifyForm.classList.add('hidden');
       }
 
-      // Update aria-pressed on variant buttons
+      // Update aria-pressed on variant and tracht buttons
       document.querySelectorAll('.variant-btn').forEach(b => {
+        b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false');
+      });
+      document.querySelectorAll('.tracht-btn').forEach(b => {
         b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false');
       });
     }
 
     function selectVariant(btn) {
       document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      updateDisplay();
+    }
+
+    function selectTracht(btn) {
+      document.querySelectorAll('.tracht-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       updateDisplay();
     }
