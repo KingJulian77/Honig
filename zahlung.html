@@ -367,7 +367,7 @@
         }
       }
 
-      const stockKey = draft.groesse;
+      const stockKey = draft.groesse + '-' + (draft.tracht || 'frühtracht');
       const qtyInput = document.getElementById('qty');
       let   stockNow = 0;
 
@@ -431,6 +431,7 @@
           plz:         draft.plz,
           stadt:       draft.stadt,
           groesse:     qty > 1 ? draft.groesse + ' × ' + qty : draft.groesse,
+          tracht:      draft.tracht || 'frühtracht',
           preis:       formatPrice(total),
           status:      isPaid ? 'bezahlt' : 'ausstehend',
           archived:    false,

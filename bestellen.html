@@ -153,11 +153,25 @@
           <div>
             <p class="font-serif text-xl text-ink">Blütenhonig aus Hochkamp</p>
             <p class="text-gray-400 text-sm mt-1" id="summary-groesse">250g Glas</p>
+            <p class="text-gray-400 text-sm mt-0.5" id="summary-tracht">Frühtracht</p>
           </div>
           <div class="text-right">
             <p class="font-serif text-2xl text-ink" id="summary-preis">8,50 €</p>
             <p class="text-xs text-gray-400 mt-1" id="summary-calc" style="display:none;"></p>
             <p class="text-xs text-gray-400 mt-1">inkl. Versand</p>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-100">
+          <p class="text-[11px] text-gray-400 uppercase tracking-[0.1em] mb-2.5">Honigtracht wählen</p>
+          <div class="flex gap-2">
+            <button id="tracht-frueh" onclick="setTracht('frühtracht')" type="button"
+              class="px-4 py-2 rounded-full text-sm border transition-colors duration-150 bg-honey text-white border-honey">
+              Frühtracht
+            </button>
+            <button id="tracht-sommer" onclick="setTracht('sommertracht')" type="button"
+              class="px-4 py-2 rounded-full text-sm border transition-colors duration-150 border-gray-300 text-gray-600 bg-white">
+              Sommertracht
+            </button>
           </div>
         </div>
       </div>
@@ -415,6 +429,7 @@
     groesse = groesse || '160g';
     preis   = preis   || '7,00 €';
     anzahl  = anzahl  || 1;
+    let tracht = (draft && draft.tracht) || 'frühtracht';
 
     const unitNum = parseFloat(preis.replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
     let rabattProzent = 0;
@@ -425,6 +440,7 @@
       const effUnitFmt  = effUnit.toFixed(2).replace('.', ',') + ' €';
       const effTotalFmt = effTotal.toFixed(2).replace('.', ',') + ' €';
       document.getElementById('summary-groesse').textContent = groesse + ' Glas';
+      document.getElementById('summary-tracht').textContent = tracht === 'frühtracht' ? 'Frühtracht' : 'Sommertracht';
       if (anzahl > 1) {
         document.getElementById('summary-preis').textContent = effTotalFmt;
         const calcEl = document.getElementById('summary-calc');
@@ -441,8 +457,8 @@
       const errEl = document.getElementById('rabatt-err');
       okEl.classList.add('hidden');
       errEl.classList.add('hidden');
-      if (code.toLowerCase() === 'kingjulien') {
-        rabattProzent = 50;
+      if (code.toLowerCase() === 'binemaya') {
+        rabattProzent = 20;
         okEl.classList.remove('hidden');
       } else {
         rabattProzent = 0;
@@ -451,7 +467,18 @@
       updateSummaryDisplay();
     }
 
+    function setTracht(t) {
+      tracht = t;
+      const frueh  = document.getElementById('tracht-frueh');
+      const sommer = document.getElementById('tracht-sommer');
+      const isF    = t === 'frühtracht';
+      frueh.className  = 'px-4 py-2 rounded-full text-sm border transition-colors duration-150 ' + (isF  ? 'bg-honey text-white border-honey' : 'border-gray-300 text-gray-600 bg-white');
+      sommer.className = 'px-4 py-2 rounded-full text-sm border transition-colors duration-150 ' + (!isF ? 'bg-honey text-white border-honey' : 'border-gray-300 text-gray-600 bg-white');
+      updateSummaryDisplay();
+    }
+
     updateSummaryDisplay();
+    setTracht(tracht);
 
     // Pre-fill fields if returning from zahlung.html
     if (draft) {
@@ -559,7 +586,7 @@
       if (btnArrow) btnArrow.style.display = '';
 
       sessionStorage.setItem('honig_order_draft', JSON.stringify({
-        vorname, nachname, email, strasse, hausnummer, plz, stadt, groesse, preis, anzahl,
+        vorname, nachname, email, strasse, hausnummer, plz, stadt, groesse, tracht, preis, anzahl,
         rabattCode: document.getElementById('rabatt-code').value.trim(),
         rabattProzent
       }));
