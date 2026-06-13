@@ -29,7 +29,7 @@
     var text = document.createElement('p');
     text.style.cssText = 'margin:0;flex:1;min-width:200px;line-height:1.5;';
     text.innerHTML = 'Diese Website verwendet Cookies – u. a. von PayPal – für die sichere Zahlungsabwicklung. '
-      + 'Weitere Infos in unserer <a href="impressum.html" style="color:#B8862A;text-decoration:underline;">Datenschutzerklärung</a>.';
+      + 'Weitere Infos in unserer <a href="datenschutz.html" style="color:#B8862A;text-decoration:underline;">Datenschutzerklärung</a>.';
 
     var buttons = document.createElement('div');
     buttons.style.cssText = 'display:flex;gap:10px;flex-shrink:0;';
