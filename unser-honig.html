@@ -172,8 +172,9 @@
         <!-- Product Image -->
         <div class="overflow-hidden md:sticky md:top-28 shadow-[0_4px_24px_rgba(26,26,26,0.09)]" style="border-radius:4px;">
           <img
-            src="brand-assets-photos/Gläser.jpeg"
-            alt="Honig aus Hochkamp – Gläser"
+            id="product-image"
+            src="brand-assets-photos/Produkt.jpg"
+            alt="Honig aus Hochkamp – 375g Glas"
             class="w-full object-cover"
             style="display:block;"
             loading="eager"
@@ -201,22 +202,22 @@
             <p class="text-ink text-xs font-medium tracking-wider uppercase mb-4">Größe wählen</p>
             <div class="flex gap-3" id="variants" role="group" aria-label="Gläsergröße wählen">
               <button
-                class="variant-btn active border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium"
+                class="variant-btn border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium text-ink"
                 data-price="7,00 €"
                 data-stock="12"
                 data-weight="160g"
                 onclick="selectVariant(this)"
-                aria-pressed="true"
+                aria-pressed="false"
               >
                 160 g
               </button>
               <button
-                class="variant-btn border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium text-ink"
+                class="variant-btn active border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium"
                 data-price="8,00 €"
                 data-stock="5"
                 data-weight="375g"
                 onclick="selectVariant(this)"
-                aria-pressed="false"
+                aria-pressed="true"
               >
                 375 g
               </button>
@@ -563,6 +564,15 @@
 
       const price    = btn.dataset.price;
       const weight   = btn.dataset.weight;
+
+      const img = document.getElementById('product-image');
+      if (weight === '375g') {
+        img.src = 'brand-assets-photos/Produkt.jpg';
+        img.alt = 'Honig aus Hochkamp – 375g Glas';
+      } else {
+        img.src = 'brand-assets-photos/placeholder-160g.svg';
+        img.alt = 'Honig aus Hochkamp – 160g Glas';
+      }
       const maxStock = 20;
       const trachtBtn = document.querySelector('.tracht-btn.active');
       const tracht   = trachtBtn ? trachtBtn.dataset.tracht : 'frühtracht';
