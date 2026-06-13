@@ -385,8 +385,8 @@
       async function sendConfirmationEmail(type, qty, total, orderId) {
         if (!draft.email) return;
         const hinweis = type === 'bezahlt'
-          ? 'Deine Zahlung war erfolgreich. Wir bringen deine Bestellung am nächsten Sonntag persönlich vorbei.'
-          : `Bitte überweise ${formatPrice(total)} per PayPal an @julianbgrt. Deine Bestellung wird erst nach Zahlungseingang bearbeitet und am nächsten Sonntag geliefert.`;
+          ? 'Deine Zahlung war erfolgreich. Wir bringen deine Bestellung in der Regel am nächsten Sonntag persönlich vorbei. Je nach Bearbeitungsdauer kann dies auch der übernächste Sonntag sein.'
+          : `Bitte überweise ${formatPrice(total)} per PayPal an @julianbgrt. Deine Bestellung wird erst nach Zahlungseingang bearbeitet und in der Regel am nächsten Sonntag geliefert – je nach Bearbeitungsdauer kann dies auch der übernächste Sonntag sein.`;
         try {
           await emailjs.send('service_knxwgs2', 'template_rhczhtm', {
             kunde_name:       draft.vorname + ' ' + draft.nachname,
