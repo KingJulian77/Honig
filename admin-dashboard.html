@@ -183,9 +183,17 @@
               </div>
               <div class="col-span-2 md:col-span-3">
                 <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Produktbild (optional)</label>
-                <input type="file" id="new-image" accept="image/*"
-                  class="w-full border border-gray-300 rounded-xl px-5 py-3 text-sm bg-cream focus:outline-none focus:border-honey cursor-pointer file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-medium file:bg-honey file:text-white"
-                  style="font-family:'DM Sans',sans-serif;">
+                <button id="image-picker-toggle" type="button" onclick="toggleImagePicker()"
+                  class="w-full border border-gray-300 rounded-xl px-5 py-3 text-sm bg-cream hover:border-honey transition-colors flex items-center justify-between"
+                  style="font-family:'DM Sans',sans-serif;color:#9ca3af;">
+                  <span id="image-picker-label">Bild auswählen…</span>
+                  <span id="image-picker-arrow" style="display:inline-block;transition:transform 0.2s;">▾</span>
+                </button>
+                <div id="image-picker-panel" class="hidden mt-3 border border-gray-200 rounded-xl p-4 bg-white">
+                  <div id="image-picker-grid" class="grid grid-cols-3 md:grid-cols-4 gap-3">
+                    <p class="text-sm text-gray-400 col-span-4 text-center py-4">Wird geladen…</p>
+                  </div>
+                </div>
                 <p class="text-xs text-gray-400 mt-1">Ohne Bild wird auf der Produktseite ein Platzhalter angezeigt.</p>
               </div>
             </div>
@@ -1110,21 +1118,7 @@
         return;
       }
 
-      let imageUrl = null;
-      const file = document.getElementById('new-image').files[0];
-      if (file) {
-        showVariantFeedback('Bild wird hochgeladen…', 'green');
-        const fileName = Date.now() + '-' + file.name.replace(/\s+/g, '-');
-        const { error: uploadError } = await sb.storage.from('variant-images').upload(fileName, file);
-        if (uploadError) {
-          showVariantFeedback('Fehler beim Bild-Upload: ' + uploadError.message, 'red');
-          return;
-        }
-        const { data: { publicUrl } } = sb.storage.from('variant-images').getPublicUrl(fileName);
-        imageUrl = publicUrl;
-      }
-
-      const { error } = await sb.from('variants').insert({ weight, tracht, year, price, quantity: qty, image_url: imageUrl });
+      const { error } = await sb.from('variants').insert({ weight, tracht, year, price, quantity: qty, image_url: selectedImageUrl });
       if (error) {
         showVariantFeedback('Fehler: ' + error.message, 'red');
         return;
@@ -1132,7 +1126,13 @@
       ['new-weight','new-tracht','new-year','new-price','new-qty'].forEach(id => {
         document.getElementById(id).value = '';
       });
-      document.getElementById('new-image').value = '';
+      selectedImageUrl = null;
+      document.getElementById('image-picker-label').textContent = 'Bild auswählen…';
+      document.getElementById('image-picker-label').style.color = '';
+      document.getElementById('image-picker-toggle').style.borderColor = '';
+      document.getElementById('image-picker-panel').classList.add('hidden');
+      document.getElementById('image-picker-arrow').style.transform = '';
+      if (brandImageCache) renderBrandImages(brandImageCache);
       document.getElementById('add-variant-form').classList.add('hidden');
       document.getElementById('add-variant-arrow').style.transform = '';
       showVariantFeedback('✓ Variante hinzugefügt', 'green');
@@ -1145,6 +1145,65 @@
       el.style.color = color === 'green' ? '#15803d' : '#dc2626';
       el.classList.remove('hidden');
       setTimeout(() => el.classList.add('hidden'), 4000);
+    }
+
+    // ── Image Picker ─────────────────────────────────────────────
+    let selectedImageUrl = null;
+    let brandImageCache  = null;
+
+    function toggleImagePicker() {
+      const panel = document.getElementById('image-picker-panel');
+      const arrow = document.getElementById('image-picker-arrow');
+      const open  = !panel.classList.contains('hidden');
+      panel.classList.toggle('hidden', open);
+      arrow.style.transform = open ? '' : 'rotate(-180deg)';
+      if (!open) loadBrandImages();
+    }
+
+    async function loadBrandImages() {
+      const grid = document.getElementById('image-picker-grid');
+      if (brandImageCache) { renderBrandImages(brandImageCache); return; }
+      grid.innerHTML = '<p class="text-sm text-gray-400 col-span-4 text-center py-4">Wird geladen…</p>';
+      try {
+        const res   = await fetch('https://api.github.com/repos/KingJulian77/Honig/contents/brand-assets-photos');
+        const files = await res.json();
+        brandImageCache = files.filter(f => f.type === 'file' && /\.(jpg|jpeg|png|webp)$/i.test(f.name));
+        renderBrandImages(brandImageCache);
+      } catch {
+        grid.innerHTML = '<p class="text-sm text-red-400 col-span-4 text-center py-4">Bilder konnten nicht geladen werden.</p>';
+      }
+    }
+
+    function renderBrandImages(files) {
+      const grid = document.getElementById('image-picker-grid');
+      grid.innerHTML = files.map(f => {
+        const path   = 'brand-assets-photos/' + f.name;
+        const active = selectedImageUrl === path;
+        const border = active ? 'border-honey' : 'border-gray-200 hover:border-honey';
+        return `<button type="button" onclick="selectBrandImage('${path}', '${f.name}')"
+          class="relative border-2 ${border} rounded-xl overflow-hidden transition-all focus:outline-none"
+          title="${f.name}" style="background:white;">
+          <img src="${path}" class="w-full aspect-square object-cover" loading="lazy" alt="${f.name}">
+          <p class="text-[10px] text-center text-gray-500 px-1 py-1 truncate" style="font-family:'DM Sans',sans-serif;">${f.name}</p>
+          ${active ? `<div class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center" style="background:#B8862A;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>` : ''}
+        </button>`;
+      }).join('');
+    }
+
+    function selectBrandImage(path, name) {
+      selectedImageUrl = (selectedImageUrl === path) ? null : path;
+      const label = document.getElementById('image-picker-label');
+      const btn   = document.getElementById('image-picker-toggle');
+      if (selectedImageUrl) {
+        label.textContent = name;
+        label.style.color = '#B8862A';
+        btn.style.borderColor = '#B8862A';
+      } else {
+        label.textContent = 'Bild auswählen…';
+        label.style.color = '';
+        btn.style.borderColor = '';
+      }
+      renderBrandImages(brandImageCache);
     }
 
     // ── Statistics ───────────────────────────────────────────────
