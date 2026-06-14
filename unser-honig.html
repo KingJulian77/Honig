@@ -298,7 +298,7 @@
             </div>
             <div class="flex justify-between text-sm">
               <span class="text-gray-400">Ernte</span>
-              <span class="text-ink font-medium">Sommer 2025</span>
+              <span id="info-ernte-value" class="text-ink font-medium">Sommer 2025</span>
             </div>
             <div class="flex justify-between text-sm">
               <span class="text-gray-400">Inhaltsstoffe</span>
@@ -553,6 +553,14 @@
       if (yearEl) {
         if (year) { yearEl.textContent = 'Ernte ' + year; yearEl.classList.remove('hidden'); }
         else { yearEl.classList.add('hidden'); }
+      }
+
+      const erntInfoEl = document.getElementById('info-ernte-value');
+      if (erntInfoEl && year) {
+        let season = '';
+        if (tracht.toLowerCase().includes('sommer')) season = 'Sommer ';
+        else if (tracht.toLowerCase().includes('früh')) season = 'Frühjahr ';
+        erntInfoEl.textContent = season + year;
       }
 
       const maxStock = 20;

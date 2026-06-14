@@ -71,7 +71,7 @@ ALTER TABLE orders      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscribers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE variants    ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "stock_all"       ON stock       FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "orders_all"      ON orders      FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "subscribers_all" ON subscribers FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "variants_all"    ON variants    FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "stock_all"       ON stock       FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "orders_all"      ON orders      FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "subscribers_all" ON subscribers FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "variants_all"    ON variants    FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
