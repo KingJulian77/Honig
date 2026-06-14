@@ -190,6 +190,12 @@
                   <span id="image-picker-arrow" style="display:inline-block;transition:transform 0.2s;">▾</span>
                 </button>
                 <div id="image-picker-panel" class="hidden mt-3 border border-gray-200 rounded-xl p-4 bg-white">
+                  <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs text-gray-400 font-medium uppercase tracking-wider">Brand Assets</span>
+                    <button type="button" onclick="refreshBrandImages()"
+                      class="text-xs text-honey hover:underline"
+                      style="font-family:'DM Sans',sans-serif;">↺ Aktualisieren</button>
+                  </div>
                   <div id="image-picker-grid" class="grid grid-cols-3 md:grid-cols-4 gap-3">
                     <p class="text-sm text-gray-400 col-span-4 text-center py-4">Wird geladen…</p>
                   </div>
@@ -1165,13 +1171,22 @@
       if (brandImageCache) { renderBrandImages(brandImageCache); return; }
       grid.innerHTML = '<p class="text-sm text-gray-400 col-span-4 text-center py-4">Wird geladen…</p>';
       try {
-        const res   = await fetch('https://api.github.com/repos/KingJulian77/Honig/contents/brand-assets-photos');
+        const res = await fetch('https://api.github.com/repos/KingJulian77/Honig/contents/brand-assets-photos');
+        if (res.status === 403 || res.status === 429) {
+          grid.innerHTML = '<p class="text-sm text-red-400 col-span-4 text-center py-4">GitHub Rate Limit erreicht – bitte in ~1 Minute erneut versuchen.</p>';
+          return;
+        }
         const files = await res.json();
         brandImageCache = files.filter(f => f.type === 'file' && /\.(jpg|jpeg|png|webp)$/i.test(f.name));
         renderBrandImages(brandImageCache);
       } catch {
-        grid.innerHTML = '<p class="text-sm text-red-400 col-span-4 text-center py-4">Bilder konnten nicht geladen werden.</p>';
+        grid.innerHTML = '<p class="text-sm text-red-400 col-span-4 text-center py-4">Bilder konnten nicht geladen werden. Internetverbindung prüfen.</p>';
       }
+    }
+
+    async function refreshBrandImages() {
+      brandImageCache = null;
+      await loadBrandImages();
     }
 
     function renderBrandImages(files) {
