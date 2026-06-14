@@ -200,51 +200,18 @@
           <!-- Variant selector -->
           <div class="mb-8">
             <p class="text-ink text-xs font-medium tracking-wider uppercase mb-4">Größe wählen</p>
-            <div class="flex gap-3" id="variants" role="group" aria-label="Gläsergröße wählen">
-              <button
-                class="variant-btn border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium text-ink"
-                data-price="7,00 €"
-                data-stock="12"
-                data-weight="160g"
-                onclick="selectVariant(this)"
-                aria-pressed="false"
-              >
-                160 g
-              </button>
-              <button
-                class="variant-btn active border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium"
-                data-price="8,00 €"
-                data-stock="5"
-                data-weight="375g"
-                onclick="selectVariant(this)"
-                aria-pressed="true"
-              >
-                375 g
-              </button>
+            <div class="flex flex-wrap gap-3" id="variants" role="group" aria-label="Gläsergröße wählen">
+              <!-- dynamisch befüllt -->
             </div>
           </div>
 
           <!-- Sorte selector -->
           <div class="mb-8">
             <p class="text-ink text-xs font-medium tracking-wider uppercase mb-4">Sorte wählen</p>
-            <div class="flex gap-3" id="tracht-buttons" role="group" aria-label="Honigtracht wählen">
-              <button
-                class="tracht-btn active border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium"
-                data-tracht="frühtracht"
-                onclick="selectTracht(this)"
-                aria-pressed="true"
-              >
-                Frühtracht
-              </button>
-              <button
-                class="tracht-btn border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium text-ink"
-                data-tracht="sommertracht"
-                onclick="selectTracht(this)"
-                aria-pressed="false"
-              >
-                Sommertracht
-              </button>
+            <div class="flex flex-wrap gap-3" id="tracht-buttons" role="group" aria-label="Honigtracht wählen">
+              <!-- dynamisch befüllt -->
             </div>
+            <p id="year-display" class="text-xs text-gray-400 mt-3 hidden"></p>
           </div>
 
           <!-- Quantity selector -->
@@ -556,14 +523,19 @@
       showToast('Danke! Wir melden uns, sobald neuer Honig verfügbar ist.');
     }
 
-    let currentStock = { '160g-frühtracht': 0, '160g-sommertracht': 0, '375g-frühtracht': 0, '375g-sommertracht': 0 };
+    let variantMap = {}; // key: "375g-Frühtracht", value: { id, quantity, price, year }
 
     function updateDisplay() {
       const btn = document.querySelector('.variant-btn.active');
       if (!btn) return;
 
-      const price    = btn.dataset.price;
-      const weight   = btn.dataset.weight;
+      const weight    = btn.dataset.weight;
+      const trachtBtn = document.querySelector('.tracht-btn.active');
+      const tracht    = trachtBtn ? trachtBtn.dataset.tracht : '';
+      const variant   = variantMap[weight + '-' + tracht] || {};
+      const price     = variant.price || '–';
+      const stock     = variant.quantity ?? 0;
+      const year      = variant.year ?? null;
 
       const img = document.getElementById('product-image');
       if (weight === '375g') {
@@ -571,46 +543,45 @@
         img.alt = 'Honig aus Hochkamp – 375g Glas';
       } else {
         img.src = 'brand-assets-photos/placeholder-160g.svg';
-        img.alt = 'Honig aus Hochkamp – 160g Glas';
+        img.alt = 'Honig aus Hochkamp – ' + weight + ' Glas';
       }
+
+      const yearEl = document.getElementById('year-display');
+      if (yearEl) {
+        if (year) { yearEl.textContent = 'Ernte ' + year; yearEl.classList.remove('hidden'); }
+        else { yearEl.classList.add('hidden'); }
+      }
+
       const maxStock = 20;
-      const trachtBtn = document.querySelector('.tracht-btn.active');
-      const tracht   = trachtBtn ? trachtBtn.dataset.tracht : 'frühtracht';
-      const stock    = currentStock[weight + '-' + tracht] ?? 0;
       const qtyInput = document.getElementById('qty-select');
       qtyInput.max   = stock > 0 ? stock : 1;
       if (stock > 0 && parseInt(qtyInput.value) > stock) qtyInput.value = stock;
       const qty      = stock > 0 ? Math.min(stock, Math.max(1, parseInt(qtyInput.value) || 1)) : 1;
 
-      const priceNum  = parseFloat(price.replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
-      const total     = qty * priceNum;
-      const totalFmt  = total.toFixed(2).replace('.', ',') + ' €';
+      const priceNum = parseFloat(price.replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
+      const total    = qty * priceNum;
+      const totalFmt = total.toFixed(2).replace('.', ',') + ' €';
 
-      const bestellBtn  = document.getElementById('bestell-btn');
-      const bestellText = document.getElementById('bestell-btn-text');
+      const bestellBtn   = document.getElementById('bestell-btn');
+      const bestellText  = document.getElementById('bestell-btn-text');
       const bestellArrow = document.getElementById('bestell-btn-arrow');
-      const stockTxt    = document.getElementById('stock-text');
-      const stockBar    = document.getElementById('stock-bar');
-      const totalLine   = document.getElementById('total-line');
-      const totalDisp   = document.getElementById('total-display');
+      const stockTxt     = document.getElementById('stock-text');
+      const stockBar     = document.getElementById('stock-bar');
+      const totalLine    = document.getElementById('total-line');
+      const totalDisp    = document.getElementById('total-display');
+      const notifyForm   = document.getElementById('stock-notify-form');
 
       document.getElementById('price-display').textContent  = price;
       document.getElementById('weight-display').textContent = weight + ' Glas';
 
-      if (qty > 1) {
-        totalLine.style.display = '';
-        totalDisp.textContent   = totalFmt;
-      } else {
-        totalLine.style.display = 'none';
-      }
-
-      const notifyForm = document.getElementById('stock-notify-form');
+      if (qty > 1) { totalLine.style.display = ''; totalDisp.textContent = totalFmt; }
+      else { totalLine.style.display = 'none'; }
 
       if (stock === 0) {
-        stockTxt.textContent        = 'Aktuell ausverkauft';
-        stockTxt.style.color        = '#ef4444';
-        stockBar.style.width        = '0%';
-        bestellText.textContent     = 'Aktuell ausverkauft';
+        stockTxt.textContent           = 'Aktuell ausverkauft';
+        stockTxt.style.color           = '#ef4444';
+        stockBar.style.width           = '0%';
+        bestellText.textContent        = 'Aktuell ausverkauft';
         if (bestellArrow) bestellArrow.style.display = 'none';
         bestellBtn.style.pointerEvents = 'none';
         bestellBtn.style.opacity       = '0.45';
@@ -634,7 +605,6 @@
         if (notifyForm) notifyForm.classList.add('hidden');
       }
 
-      // Update aria-pressed on variant and tracht buttons
       document.querySelectorAll('.variant-btn').forEach(b => {
         b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false');
       });
@@ -642,19 +612,20 @@
         b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false');
       });
 
-      // Mark tracht buttons as unavailable if out of stock for current size
       document.querySelectorAll('.tracht-btn').forEach(b => {
-        const avail = (currentStock[weight + '-' + b.dataset.tracht] ?? 0) > 0;
+        const v = variantMap[weight + '-' + b.dataset.tracht];
+        const avail = v && v.quantity > 0;
         b.classList.toggle('unavailable', !avail);
         b.setAttribute('aria-disabled', avail ? 'false' : 'true');
       });
 
-      // Mark variant buttons as unavailable if both tracts are out of stock
       document.querySelectorAll('.variant-btn').forEach(b => {
         const w = b.dataset.weight;
-        const total = (currentStock[w + '-frühtracht'] ?? 0) + (currentStock[w + '-sommertracht'] ?? 0);
-        b.classList.toggle('unavailable', total === 0);
-        b.setAttribute('aria-disabled', total > 0 ? 'false' : 'true');
+        const totalQty = Object.entries(variantMap)
+          .filter(([k]) => k.startsWith(w + '-'))
+          .reduce((sum, [, v]) => sum + v.quantity, 0);
+        b.classList.toggle('unavailable', totalQty === 0);
+        b.setAttribute('aria-disabled', totalQty > 0 ? 'false' : 'true');
       });
     }
 
@@ -670,15 +641,37 @@
       updateDisplay();
     }
 
-    async function loadStock() {
-      const { data } = await sb.from('stock').select('*');
-      if (data) data.forEach(row => { currentStock[row.variant] = row.quantity; });
+    async function loadVariants() {
+      const { data } = await sb.from('variants').select('*').order('created_at', { ascending: true });
+      if (!data || data.length === 0) {
+        document.getElementById('variants').innerHTML = '<p class="text-sm text-gray-400">Keine Varianten verfügbar.</p>';
+        document.getElementById('tracht-buttons').innerHTML = '';
+        updateDisplay();
+        return;
+      }
+
+      variantMap = {};
+      data.forEach(v => { variantMap[v.weight + '-' + v.tracht] = { id: v.id, quantity: v.quantity, price: v.price, year: v.year }; });
+
+      const weights = [...new Set(data.map(v => v.weight))];
+      const tracts  = [...new Set(data.map(v => v.tracht))];
+
+      document.getElementById('variants').innerHTML = weights.map((w, i) => `<button
+        class="variant-btn ${i === 0 ? 'active' : ''} border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium${i > 0 ? ' text-ink' : ''}"
+        data-weight="${w}" onclick="selectVariant(this)" aria-pressed="${i === 0}"
+      >${w}</button>`).join('');
+
+      document.getElementById('tracht-buttons').innerHTML = tracts.map((t, i) => `<button
+        class="tracht-btn ${i === 0 ? 'active' : ''} border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium${i > 0 ? ' text-ink' : ''}"
+        data-tracht="${t}" onclick="selectTracht(this)" aria-pressed="${i === 0}"
+      >${t}</button>`).join('');
+
       updateDisplay();
     }
 
     (function init() {
       document.getElementById('qty-select').addEventListener('input', updateDisplay);
-      loadStock();
+      loadVariants();
     })();
   </script>
 

@@ -135,59 +135,56 @@
     <section class="mb-12">
       <h2 class="font-serif font-normal text-ink text-2xl mb-6">Bestand verwalten</h2>
       <div class="bg-white border border-gray-200 rounded-2xl p-8">
-        <p class="text-xs text-gray-400 uppercase tracking-wider mb-6">Verfügbare Gläser pro Variante</p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8">
 
-          <div>
-            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">160g – Frühtracht</label>
-            <div class="flex items-center gap-3">
-              <input type="number" id="stock-160-frueh" min="0"
-                class="w-28 border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream text-center focus:outline-none focus:border-honey"
-                style="font-family:'DM Sans',sans-serif;">
-              <span class="text-gray-400 text-sm">Gläser</span>
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">160g – Sommertracht</label>
-            <div class="flex items-center gap-3">
-              <input type="number" id="stock-160-sommer" min="0"
-                class="w-28 border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream text-center focus:outline-none focus:border-honey"
-                style="font-family:'DM Sans',sans-serif;">
-              <span class="text-gray-400 text-sm">Gläser</span>
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">375g – Frühtracht</label>
-            <div class="flex items-center gap-3">
-              <input type="number" id="stock-375-frueh" min="0"
-                class="w-28 border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream text-center focus:outline-none focus:border-honey"
-                style="font-family:'DM Sans',sans-serif;">
-              <span class="text-gray-400 text-sm">Gläser</span>
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">375g – Sommertracht</label>
-            <div class="flex items-center gap-3">
-              <input type="number" id="stock-375-sommer" min="0"
-                class="w-28 border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream text-center focus:outline-none focus:border-honey"
-                style="font-family:'DM Sans',sans-serif;">
-              <span class="text-gray-400 text-sm">Gläser</span>
-            </div>
-          </div>
-
+        <p class="text-xs text-gray-400 uppercase tracking-wider mb-6">Vorhandene Varianten</p>
+        <div id="variants-list" class="space-y-3 mb-8">
+          <p class="text-sm text-gray-400">Wird geladen …</p>
         </div>
 
-        <div class="flex items-center gap-4">
-          <button onclick="saveStock()"
-            class="bg-honey text-white text-sm font-medium px-8 py-3 rounded-full hover:opacity-90 transition-opacity"
-            style="font-family:'DM Sans',sans-serif;letter-spacing:0.02em;">
-            Bestand speichern →
-          </button>
-          <span id="stock-saved" class="hidden text-sm text-green-700 font-medium">✓ Gespeichert – Änderungen sind live auf der Website</span>
+        <div class="border-t border-gray-100 pt-8">
+          <p class="text-xs text-gray-400 uppercase tracking-wider mb-6">Neue Variante hinzufügen</p>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Gewicht</label>
+              <input type="text" id="new-weight" placeholder="z. B. 375g"
+                class="w-full border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream focus:outline-none focus:border-honey"
+                style="font-family:'DM Sans',sans-serif;">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Tracht</label>
+              <input type="text" id="new-tracht" placeholder="z. B. Frühtracht"
+                class="w-full border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream focus:outline-none focus:border-honey"
+                style="font-family:'DM Sans',sans-serif;">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Jahr</label>
+              <input type="number" id="new-year" placeholder="2025"
+                class="w-full border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream text-center focus:outline-none focus:border-honey"
+                style="font-family:'DM Sans',sans-serif;">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Preis</label>
+              <input type="text" id="new-price" placeholder="8,00 €"
+                class="w-full border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream focus:outline-none focus:border-honey"
+                style="font-family:'DM Sans',sans-serif;">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Gläser</label>
+              <input type="number" id="new-qty" placeholder="0" min="0"
+                class="w-full border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream text-center focus:outline-none focus:border-honey"
+                style="font-family:'DM Sans',sans-serif;">
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-4">
+            <button onclick="addVariant()"
+              class="bg-honey text-white text-sm font-medium px-8 py-3 rounded-full hover:opacity-90 transition-opacity"
+              style="font-family:'DM Sans',sans-serif;letter-spacing:0.02em;">
+              Variante hinzufügen →
+            </button>
+            <span id="variant-feedback" class="hidden text-sm font-medium"></span>
+          </div>
         </div>
+
       </div>
     </section>
 
@@ -708,17 +705,17 @@
     }
 
     async function loadAllData() {
-      const [activeRes, archivedRes, subsRes, stockRes] = await Promise.all([
+      const [activeRes, archivedRes, subsRes, variantsRes] = await Promise.all([
         sb.from('orders').select('*').eq('archived', false).order('created_at', { ascending: false }),
         sb.from('orders').select('*').eq('archived', true).order('created_at', { ascending: false }),
         sb.from('subscribers').select('*').order('created_at', { ascending: false }),
-        sb.from('stock').select('*')
+        sb.from('variants').select('*').order('created_at', { ascending: true })
       ]);
 
       const activeOrders   = activeRes.data   || [];
       const archivedOrders = archivedRes.data || [];
       const subs           = subsRes.data     || [];
-      const stock          = stockRes.data    || [];
+      const variants       = variantsRes.data || [];
 
       allOrdersCache = [...activeOrders, ...archivedOrders];
       activeOrdersCache = activeOrders;
@@ -731,7 +728,7 @@
       renderOrders(activeOrders);
       renderArchived(archivedOrders);
       renderSubscribers(subs);
-      loadStockInputs(stock);
+      renderVariantsList(variants);
       renderStats(allOrdersCache);
       renderOrderMap(activeOrders);
     }
@@ -1030,30 +1027,78 @@
       );
     }
 
-    // ── Stock ────────────────────────────────────────────────────
-    function loadStockInputs(stock) {
-      const map = {};
-      (stock || []).forEach(row => { map[row.variant] = row.quantity; });
-      document.getElementById('stock-160-frueh').value  = map['160g-frühtracht']   ?? 0;
-      document.getElementById('stock-160-sommer').value = map['160g-sommertracht'] ?? 0;
-      document.getElementById('stock-375-frueh').value  = map['375g-frühtracht']   ?? 0;
-      document.getElementById('stock-375-sommer').value = map['375g-sommertracht'] ?? 0;
+    // ── Variants ─────────────────────────────────────────────────
+    function renderVariantsList(variants) {
+      const list = document.getElementById('variants-list');
+      if (!variants || variants.length === 0) {
+        list.innerHTML = '<p class="text-sm text-gray-400">Noch keine Varianten vorhanden.</p>';
+        return;
+      }
+      list.innerHTML = variants.map(v => `
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-gray-50 rounded-xl px-5 py-4">
+          <div>
+            <span class="text-sm font-medium text-ink">${v.weight} – ${v.tracht}</span>
+            ${v.year ? `<span class="text-xs text-gray-400 ml-2">Ernte ${v.year}</span>` : ''}
+            <span class="text-xs text-gray-400 ml-2">· ${v.price}</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <input type="number" id="qty-${v.id}" value="${v.quantity}" min="0"
+              class="w-24 border border-gray-300 rounded-full px-4 py-2 text-sm bg-cream text-center focus:outline-none focus:border-honey"
+              style="font-family:'DM Sans',sans-serif;">
+            <span class="text-gray-400 text-sm">Gläser</span>
+            <button onclick="saveVariant(${v.id})"
+              class="bg-honey text-white text-xs font-medium px-4 py-2 rounded-full hover:opacity-90 transition-opacity"
+              style="font-family:'DM Sans',sans-serif;">
+              Speichern
+            </button>
+            <button onclick="deleteVariant(${v.id})"
+              class="text-gray-400 hover:text-red-500 transition-colors text-lg leading-none px-1"
+              title="Variante löschen">×</button>
+          </div>
+        </div>
+      `).join('');
     }
 
-    async function saveStock() {
-      const v160f = parseInt(document.getElementById('stock-160-frueh').value)  || 0;
-      const v160s = parseInt(document.getElementById('stock-160-sommer').value) || 0;
-      const v375f = parseInt(document.getElementById('stock-375-frueh').value)  || 0;
-      const v375s = parseInt(document.getElementById('stock-375-sommer').value) || 0;
-      await Promise.all([
-        sb.from('stock').upsert({ variant: '160g-frühtracht',   quantity: v160f }),
-        sb.from('stock').upsert({ variant: '160g-sommertracht', quantity: v160s }),
-        sb.from('stock').upsert({ variant: '375g-frühtracht',   quantity: v375f }),
-        sb.from('stock').upsert({ variant: '375g-sommertracht', quantity: v375s })
-      ]);
-      const msg = document.getElementById('stock-saved');
-      msg.classList.remove('hidden');
-      setTimeout(() => msg.classList.add('hidden'), 3000);
+    async function saveVariant(id) {
+      const qty = parseInt(document.getElementById('qty-' + id).value) || 0;
+      await sb.from('variants').update({ quantity: qty }).eq('id', id);
+      showVariantFeedback('✓ Gespeichert – Änderungen sind live auf der Website', 'green');
+    }
+
+    async function deleteVariant(id) {
+      if (!window.confirm('Diese Variante wirklich löschen? Sie verschwindet dann auch auf der Website.')) return;
+      await sb.from('variants').delete().eq('id', id);
+      await loadAllData();
+    }
+
+    async function addVariant() {
+      const weight = document.getElementById('new-weight').value.trim();
+      const tracht = document.getElementById('new-tracht').value.trim();
+      const year   = parseInt(document.getElementById('new-year').value) || null;
+      const price  = document.getElementById('new-price').value.trim();
+      const qty    = parseInt(document.getElementById('new-qty').value) || 0;
+      if (!weight || !tracht || !price) {
+        showVariantFeedback('Bitte Gewicht, Tracht und Preis angeben.', 'red');
+        return;
+      }
+      const { error } = await sb.from('variants').insert({ weight, tracht, year, price, quantity: qty });
+      if (error) {
+        showVariantFeedback('Fehler: ' + error.message, 'red');
+        return;
+      }
+      ['new-weight','new-tracht','new-year','new-price','new-qty'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      showVariantFeedback('✓ Variante hinzugefügt', 'green');
+      await loadAllData();
+    }
+
+    function showVariantFeedback(msg, color) {
+      const el = document.getElementById('variant-feedback');
+      el.textContent = msg;
+      el.style.color = color === 'green' ? '#15803d' : '#dc2626';
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 4000);
     }
 
     // ── Statistics ───────────────────────────────────────────────
