@@ -44,8 +44,20 @@ CREATE TABLE IF NOT EXISTS variants (
   quantity   INTEGER NOT NULL DEFAULT 0,
   year       INTEGER,
   price      TEXT NOT NULL,
+  image_url  TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+-- Bei bestehenden Deployments: ALTER TABLE variants ADD COLUMN IF NOT EXISTS image_url TEXT;
+
+-- ── Supabase Storage für Variantenbilder ──────────────────────
+-- Im Supabase SQL-Editor ausführen:
+-- INSERT INTO storage.buckets (id, name, public)
+--   VALUES ('variant-images', 'variant-images', true)
+--   ON CONFLICT (id) DO UPDATE SET public = true;
+-- CREATE POLICY "variant_images_all" ON storage.objects
+--   FOR ALL TO anon
+--   USING (bucket_id = 'variant-images')
+--   WITH CHECK (bucket_id = 'variant-images');
 INSERT INTO variants (weight, tracht, quantity, year, price) VALUES
   ('375g', 'Frühtracht',   0, 2025, '8,00 €'),
   ('375g', 'Sommertracht', 0, 2025, '8,00 €'),

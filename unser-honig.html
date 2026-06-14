@@ -538,7 +538,10 @@
       const year      = variant.year ?? null;
 
       const img = document.getElementById('product-image');
-      if (weight === '375g') {
+      if (variant.image_url) {
+        img.src = variant.image_url;
+        img.alt = 'Honig aus Hochkamp – ' + weight + ' Glas';
+      } else if (weight === '375g') {
         img.src = 'brand-assets-photos/Produkt.jpg';
         img.alt = 'Honig aus Hochkamp – 375g Glas';
       } else {
@@ -651,7 +654,7 @@
       }
 
       variantMap = {};
-      data.forEach(v => { variantMap[v.weight + '-' + v.tracht] = { id: v.id, quantity: v.quantity, price: v.price, year: v.year }; });
+      data.forEach(v => { variantMap[v.weight + '-' + v.tracht] = { id: v.id, quantity: v.quantity, price: v.price, year: v.year, image_url: v.image_url }; });
 
       const weights = [...new Set(data.map(v => v.weight))];
       const tracts  = [...new Set(data.map(v => v.tracht))];

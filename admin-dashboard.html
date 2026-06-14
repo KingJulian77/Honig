@@ -181,6 +181,13 @@
                   class="w-full border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream text-center focus:outline-none focus:border-honey"
                   style="font-family:'DM Sans',sans-serif;">
               </div>
+              <div class="col-span-2 md:col-span-3">
+                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Produktbild (optional)</label>
+                <input type="file" id="new-image" accept="image/*"
+                  class="w-full border border-gray-300 rounded-xl px-5 py-3 text-sm bg-cream focus:outline-none focus:border-honey cursor-pointer file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-medium file:bg-honey file:text-white"
+                  style="font-family:'DM Sans',sans-serif;">
+                <p class="text-xs text-gray-400 mt-1">Ohne Bild wird auf der Produktseite ein Platzhalter angezeigt.</p>
+              </div>
             </div>
             <div class="flex flex-wrap items-center gap-4">
               <button onclick="addVariant()"
@@ -1044,10 +1051,15 @@
       }
       list.innerHTML = variants.map(v => `
         <div class="flex flex-wrap items-center justify-between gap-3 bg-gray-50 rounded-xl px-5 py-4">
-          <div>
-            <span class="text-sm font-medium text-ink">${v.weight} – ${v.tracht}</span>
-            ${v.year ? `<span class="text-xs text-gray-400 ml-2">Ernte ${v.year}</span>` : ''}
-            <span class="text-xs text-gray-400 ml-2">· ${v.price}</span>
+          <div class="flex items-center gap-3">
+            ${v.image_url
+              ? `<img src="${v.image_url}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" alt="${v.weight} ${v.tracht}">`
+              : `<div class="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0" title="Kein Bild"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`}
+            <div>
+              <span class="text-sm font-medium text-ink">${v.weight} – ${v.tracht}</span>
+              ${v.year ? `<span class="text-xs text-gray-400 ml-2">Ernte ${v.year}</span>` : ''}
+              <span class="text-xs text-gray-400 ml-2">· ${v.price}</span>
+            </div>
           </div>
           <div class="flex items-center gap-3">
             <input type="number" id="qty-${v.id}" value="${v.quantity}" min="0"
@@ -1097,7 +1109,22 @@
         showVariantFeedback('Bitte Gewicht, Tracht und Preis angeben.', 'red');
         return;
       }
-      const { error } = await sb.from('variants').insert({ weight, tracht, year, price, quantity: qty });
+
+      let imageUrl = null;
+      const file = document.getElementById('new-image').files[0];
+      if (file) {
+        showVariantFeedback('Bild wird hochgeladen…', 'green');
+        const fileName = Date.now() + '-' + file.name.replace(/\s+/g, '-');
+        const { error: uploadError } = await sb.storage.from('variant-images').upload(fileName, file);
+        if (uploadError) {
+          showVariantFeedback('Fehler beim Bild-Upload: ' + uploadError.message, 'red');
+          return;
+        }
+        const { data: { publicUrl } } = sb.storage.from('variant-images').getPublicUrl(fileName);
+        imageUrl = publicUrl;
+      }
+
+      const { error } = await sb.from('variants').insert({ weight, tracht, year, price, quantity: qty, image_url: imageUrl });
       if (error) {
         showVariantFeedback('Fehler: ' + error.message, 'red');
         return;
@@ -1105,6 +1132,7 @@
       ['new-weight','new-tracht','new-year','new-price','new-qty'].forEach(id => {
         document.getElementById(id).value = '';
       });
+      document.getElementById('new-image').value = '';
       document.getElementById('add-variant-form').classList.add('hidden');
       document.getElementById('add-variant-arrow').style.transform = '';
       showVariantFeedback('✓ Variante hinzugefügt', 'green');
