@@ -92,6 +92,32 @@
     <span id="toast-msg"></span>
   </div>
 
+  <!-- ─── DOI-Bestätigungs-Modal ──────────────────────────────── -->
+  <div
+    id="doi-modal"
+    class="hidden fixed inset-0 z-[1002] flex items-center justify-center px-4"
+    style="background:rgba(0,0,0,0.45);"
+    onclick="if(event.target===this)closeDoiModal()"
+  >
+    <div class="bg-white rounded-2xl shadow-[0_8px_40px_rgba(26,26,26,0.18)] p-8 md:p-10 text-center" style="max-width:440px;width:100%;">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-5" style="background:rgba(184,134,42,0.1);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#B8862A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      </div>
+      <h2 class="font-serif font-normal text-ink text-2xl mb-3">Fast geschafft!</h2>
+      <p class="text-gray-500 text-sm leading-relaxed mb-7">
+        Wir haben eine Bestätigungs-E-Mail an<br>
+        <strong id="doi-modal-email" class="text-ink font-medium"></strong><br>
+        gesendet. Bitte klicke auf den Link in der E-Mail,<br>um deine Anmeldung abzuschließen.
+      </p>
+      <button
+        onclick="closeDoiModal()"
+        class="bg-honey text-white font-sans text-[11px] tracking-[0.18em] uppercase px-8 py-3.5 rounded-full hover:opacity-90 transition-opacity duration-150"
+      >
+        Verstanden
+      </button>
+    </div>
+  </div>
+
   <!-- ─── Navigation ─────────────────────────────────────────────── -->
   <header class="sticky top-0 z-[100] bg-cream border-b border-gray-200 shadow-[0_2px_12px_rgba(26,26,26,0.05)]">
     <div class="max-w-screen-xl mx-auto px-5 md:px-10">
@@ -339,6 +365,14 @@
     const BASE_URL = 'https://hochkamphonig.de'; // ← eigene Domain eintragen
     const EMAILJS_SERVICE_ID  = 'service_knxwgs2';
     const EMAILJS_DOI_TEMPLATE = 'template_n5rpq2a'; // ← Template-ID aus EmailJS-Dashboard
+
+    function showDoiModal(email) {
+      document.getElementById('doi-modal-email').textContent = email;
+      document.getElementById('doi-modal').classList.remove('hidden');
+    }
+    function closeDoiModal() {
+      document.getElementById('doi-modal').classList.add('hidden');
+    }
 
     function showToast(msg) {
       const toast = document.getElementById('toast');
@@ -611,7 +645,7 @@
       input.value = '';
       btn.disabled = false;
       btnText.textContent = 'Benachrichtigen';
-      showToast('Fast geschafft! Bitte bestätige deine Anmeldung per E-Mail.');
+      showDoiModal(email);
     }
   </script>
 
