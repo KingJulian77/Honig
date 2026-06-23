@@ -374,6 +374,7 @@
       const qtyInput = document.getElementById('qty');
       let   stockNow = 0;
 
+      function ensureEuro(p) { return (p && !String(p).includes('€')) ? String(p).trim() + ' €' : String(p || ''); }
       function formatPrice(num) {
         return num.toFixed(2).replace('.', ',') + ' €';
       }
@@ -466,7 +467,7 @@
         if (raw > qty) qtyInput.value = qty;
         const total = qty * unitPriceNum;
         document.getElementById('qty-label').textContent    = qty + (qty === 1 ? ' Glas' : ' Gläser');
-        document.getElementById('unit-price').textContent   = draft.preis;
+        document.getElementById('unit-price').textContent   = ensureEuro(draft.preis);
         document.getElementById('total-price').textContent  = formatPrice(total);
         document.getElementById('paypal-total').textContent = formatPrice(total);
       }

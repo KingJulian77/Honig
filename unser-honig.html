@@ -523,6 +523,9 @@
       showToast('Danke! Wir melden uns, sobald neuer Honig verfügbar ist.');
     }
 
+    function ensureG(w)    { return (w && !String(w).trim().endsWith('g')) ? String(w).trim() + 'g' : String(w || ''); }
+    function ensureEuro(p) { return (p && !String(p).includes('€')) ? String(p).trim() + ' €' : String(p || ''); }
+
     let variantMap = {}; // key: "375g-Frühtracht", value: { id, quantity, price, year }
 
     function updateDisplay() {
@@ -582,8 +585,8 @@
       const totalDisp    = document.getElementById('total-display');
       const notifyForm   = document.getElementById('stock-notify-form');
 
-      document.getElementById('price-display').textContent  = price;
-      document.getElementById('weight-display').textContent = weight + ' Glas';
+      document.getElementById('price-display').textContent  = ensureEuro(price);
+      document.getElementById('weight-display').textContent = ensureG(weight) + ' Glas';
 
       if (qty > 1) { totalLine.style.display = ''; totalDisp.textContent = totalFmt; }
       else { totalLine.style.display = 'none'; }
@@ -609,7 +612,7 @@
         if (bestellArrow) bestellArrow.style.display = '';
         bestellBtn.style.pointerEvents = '';
         bestellBtn.style.opacity       = '';
-        const g = encodeURIComponent(weight);
+        const g = encodeURIComponent(ensureG(weight));
         const p = encodeURIComponent(price);
         const t = encodeURIComponent(tracht);
         bestellBtn.href = `bestellen.html?groesse=${g}&preis=${p}&anzahl=${qty}&tracht=${t}`;
@@ -670,7 +673,7 @@
       document.getElementById('variants').innerHTML = weights.map((w, i) => `<button
         class="variant-btn ${i === 0 ? 'active' : ''} border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium${i > 0 ? ' text-ink' : ''}"
         data-weight="${w}" onclick="selectVariant(this)" aria-pressed="${i === 0}"
-      >${w}</button>`).join('');
+      >${ensureG(w)}</button>`).join('');
 
       document.getElementById('tracht-buttons').innerHTML = tracts.map((t, i) => `<button
         class="tracht-btn ${i === 0 ? 'active' : ''} border border-gray-300 rounded-full px-6 py-3 text-sm font-sans font-medium${i > 0 ? ' text-ink' : ''}"

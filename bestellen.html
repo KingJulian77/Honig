@@ -406,6 +406,9 @@
       setTimeout(() => toast.classList.add('hidden'), 4000);
     }
 
+    function ensureG(w)    { return (w && !String(w).trim().endsWith('g')) ? String(w).trim() + 'g' : String(w || ''); }
+    function ensureEuro(p) { return (p && !String(p).includes('€')) ? String(p).trim() + ' €' : String(p || ''); }
+
     // Read URL params, fall back to sessionStorage draft
     const params = new URLSearchParams(window.location.search);
     let groesse  = params.get('groesse');
@@ -415,8 +418,8 @@
     if (!groesse || !preis) {
       if (draft) { groesse = draft.groesse; preis = draft.preis; anzahl = draft.anzahl || 1; }
     }
-    groesse = groesse || '160g';
-    preis   = preis   || '7,00 €';
+    groesse = ensureG(groesse || '160g');
+    preis   = ensureEuro(preis || '7,00 €');
     anzahl  = anzahl  || 1;
     let tracht = params.get('tracht') || (draft && draft.tracht) || 'frühtracht';
 
