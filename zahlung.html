@@ -15,6 +15,7 @@
   <script src="cookie-banner.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script>emailjs.init('krQRCnNy9nv3DaLM7');</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -279,7 +280,12 @@
         <p class="text-gray-500 text-sm leading-relaxed">
           Deine Zahlung war erfolgreich. Wir bearbeiten deine Bestellung so schnell wie möglich.
         </p>
-        <a href="index.html" class="inline-flex items-center gap-2 mt-10 text-honey text-sm font-medium hover:opacity-75 active:opacity-60 transition-opacity duration-150">
+        <button onclick="downloadRechnung()"
+          class="inline-flex items-center justify-center gap-2 mt-8 mb-2 w-full border border-honey text-honey text-sm font-medium py-3 rounded-full hover:bg-honey/5 active:bg-honey/10 transition-colors duration-150">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Rechnung herunterladen (PDF)
+        </button>
+        <a href="index.html" class="inline-flex items-center gap-2 mt-4 text-honey text-sm font-medium hover:opacity-75 active:opacity-60 transition-opacity duration-150">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           Zurück zur Startseite
         </a>
@@ -304,11 +310,19 @@
             <span class="text-sm text-gray-500">PayPal-Adresse:</span>
             <span class="font-medium text-ink text-sm">@julianbgrt</span>
           </div>
+          <div class="flex justify-center mt-4">
+            <img src="brand-assets-photos/Paypal code.JPG" alt="PayPal QR-Code" class="w-40 h-40 object-contain rounded-lg">
+          </div>
         </div>
         <p class="text-gray-500 text-sm leading-relaxed text-center">
           Dein Paket wird erst bearbeitet und versendet, sobald deine Zahlung bei uns eingegangen ist.
         </p>
-        <a href="index.html" class="inline-flex items-center justify-center gap-2 mt-10 text-honey text-sm font-medium hover:opacity-75 active:opacity-60 transition-opacity duration-150">
+        <button onclick="downloadRechnung()"
+          class="inline-flex items-center justify-center gap-2 mt-6 mb-2 w-full border border-honey text-honey text-sm font-medium py-3 rounded-full hover:bg-honey/5 active:bg-honey/10 transition-colors duration-150">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Rechnung herunterladen (PDF)
+        </button>
+        <a href="index.html" class="inline-flex items-center justify-center gap-2 mt-4 text-honey text-sm font-medium hover:opacity-75 active:opacity-60 transition-opacity duration-150">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           Zurück zur Startseite
         </a>
@@ -493,6 +507,22 @@
         const orderIdEl = document.getElementById(isPaid ? 'success-order-id' : 'manual-order-id');
         if (orderIdEl) orderIdEl.textContent = orderNum(orderData?.id);
 
+        window._invoiceData = {
+          orderId:    orderNum(orderData?.id),
+          datum:      new Date().toLocaleDateString('de-DE'),
+          vorname:    draft.vorname || '',
+          nachname:   draft.nachname || '',
+          strasse:    draft.strasse,
+          hausnummer: draft.hausnummer,
+          plz:        draft.plz,
+          stadt:      draft.stadt,
+          groesse:    draft.groesse,
+          tracht:     draft.tracht || 'frühtracht',
+          qty:        qty,
+          unitPrice:  unitPriceNum,
+          total:      total,
+          isPaid:     isPaid,
+        };
         sessionStorage.removeItem('honig_order_draft');
         await sendConfirmationEmail(isPaid ? 'bezahlt' : 'ausstehend', qty, total, orderData?.id);
 
@@ -646,6 +676,129 @@
       btn.disabled = false;
       btnText.textContent = 'Benachrichtigen';
       showDoiModal(email);
+    }
+
+    function downloadRechnung() {
+      const d = window._invoiceData;
+      if (!d) return;
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+      const honey  = [184, 134, 42];
+      const ink    = [26, 26, 26];
+      const gray   = [120, 120, 120];
+      const pageW  = 210;
+      const margin = 20;
+      const colR   = pageW - margin;
+
+      // Header
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.setTextColor(...honey);
+      doc.text('RECHNUNG', margin, 28);
+
+      doc.setFontSize(10);
+      doc.setTextColor(...gray);
+      doc.text('Honig aus Hochkamp', colR, 22, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.text('Julian Biegert', colR, 27, { align: 'right' });
+      doc.text('Grotefendweg 15', colR, 32, { align: 'right' });
+      doc.text('22589 Hamburg', colR, 37, { align: 'right' });
+      doc.text('hochkamphonig@gmail.com', colR, 42, { align: 'right' });
+
+      // Divider
+      doc.setDrawColor(...honey);
+      doc.setLineWidth(0.5);
+      doc.line(margin, 48, colR, 48);
+
+      // Order meta
+      let y = 56;
+      doc.setFontSize(9);
+      doc.setTextColor(...gray);
+      doc.text('Rechnungsnummer:', margin, y);
+      doc.text('Datum:', margin + 70, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...ink);
+      doc.text(d.orderId || '—', margin + 38, y);
+      doc.text(d.datum, margin + 86, y);
+
+      // Customer
+      y += 12;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...gray);
+      doc.text('Rechnungsempfänger:', margin, y);
+      y += 6;
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...ink);
+      doc.setFontSize(10);
+      doc.text(d.vorname + ' ' + d.nachname, margin, y);
+      y += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...gray);
+      doc.text(d.strasse + ' ' + d.hausnummer, margin, y);
+      y += 5;
+      doc.text(d.plz + ' ' + d.stadt, margin, y);
+
+      // Table header
+      y += 14;
+      doc.setFillColor(245, 240, 235);
+      doc.rect(margin, y - 5, colR - margin, 8, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...ink);
+      doc.text('Artikel', margin + 2, y);
+      doc.text('Menge', 130, y);
+      doc.text('Einzelpreis', 155, y);
+      doc.text('Gesamt', colR - 2, y, { align: 'right' });
+
+      // Table row
+      y += 10;
+      const trachtLabel = d.tracht.charAt(0).toUpperCase() + d.tracht.slice(1);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...ink);
+      doc.text('Honig aus Hochkamp – ' + d.groesse + ' (' + trachtLabel + ')', margin + 2, y);
+      doc.text(String(d.qty), 130, y);
+      doc.text(d.unitPrice.toFixed(2).replace('.', ',') + ' €', 155, y);
+      doc.text(d.total.toFixed(2).replace('.', ',') + ' €', colR - 2, y, { align: 'right' });
+
+      // Total line
+      y += 10;
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.3);
+      doc.line(margin, y - 4, colR, y - 4);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(...honey);
+      doc.text('Gesamtbetrag:', 140, y);
+      doc.text(d.total.toFixed(2).replace('.', ',') + ' €', colR - 2, y, { align: 'right' });
+
+      // Payment status
+      y += 12;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...gray);
+      if (d.isPaid) {
+        doc.text('Zahlungsstatus: Bezahlt via PayPal', margin, y);
+      } else {
+        doc.text('Zahlungsstatus: Zahlung ausstehend – bitte ' + d.total.toFixed(2).replace('.', ',') + ' € per PayPal an @julianbgrt überweisen.', margin, y);
+      }
+
+      // §19 note
+      y += 10;
+      doc.setTextColor(...gray);
+      doc.text('Gemäß §19 UStG wird keine Umsatzsteuer berechnet.', margin, y);
+
+      // Footer
+      doc.setDrawColor(...honey);
+      doc.setLineWidth(0.3);
+      doc.line(margin, 280, colR, 280);
+      doc.setFontSize(8);
+      doc.setTextColor(...gray);
+      doc.text('Honig aus Hochkamp – Julian Biegert – Grotefendweg 15 – 22589 Hamburg', pageW / 2, 285, { align: 'center' });
+
+      doc.save('Rechnung-' + (d.orderId || 'Bestellung') + '.pdf');
     }
   </script>
 
