@@ -751,9 +751,10 @@
 
       document.getElementById('stat-total').textContent   = allOrdersCache.length;
       document.getElementById('stat-pending').textContent = activeOrders.length;
-      document.getElementById('stat-subs').textContent    = subs.length;
+      document.getElementById('stat-subs').textContent    = subs.filter(s => s.confirmed).length;
 
       allSubsCache = subs;
+      confirmedSubsCache = subs.filter(s => s.confirmed);
       renderOrders(activeOrders);
       renderArchived(archivedOrders);
       renderSubscribers(subs);
@@ -970,35 +971,45 @@
         return;
       }
 
+      function statusBadge(confirmed) {
+        return confirmed
+          ? `<span style="font-size:11px;padding:2px 8px;border-radius:9999px;background:#D1FAE5;color:#065F46;">Bestätigt</span>`
+          : `<span style="font-size:11px;padding:2px 8px;border-radius:9999px;background:#FEF3C7;color:#92400E;">Ausstehend</span>`;
+      }
+
       if (selectMode) {
-        header.style.gridTemplateColumns = '32px 1fr 120px 80px';
+        header.style.gridTemplateColumns = '32px 1fr 90px 120px 80px';
         header.innerHTML = `
           <span><input type="checkbox" id="select-all-cb" onchange="toggleSelectAll(this)" style="cursor:pointer;accent-color:#B8862A;"></span>
           <span>E-Mail</span>
+          <span>Status</span>
           <span>Eingetragen am</span>
           <span>Aktion</span>
         `;
         body.innerHTML = subs.map(s => `
           <div class="grid items-center px-6 py-4 border-b border-gray-50 hover:bg-gray-50/50 transition-colors text-sm"
-            style="grid-template-columns: 32px 1fr 120px 80px;">
-            <span><input type="checkbox" class="sub-checkbox" data-email="${s.email}" onchange="updateSelectCount()" style="cursor:pointer;accent-color:#B8862A;"></span>
+            style="grid-template-columns: 32px 1fr 90px 120px 80px;">
+            <span>${s.confirmed ? `<input type="checkbox" class="sub-checkbox" data-email="${s.email}" onchange="updateSelectCount()" style="cursor:pointer;accent-color:#B8862A;">` : ''}</span>
             <span class="text-ink">${s.email}</span>
+            <span>${statusBadge(s.confirmed)}</span>
             <span class="text-gray-400">${s.datum}</span>
             <button onclick="deleteSub(${s.id})" class="text-xs text-red-500 hover:underline text-left">Löschen</button>
           </div>
         `).join('');
         updateSelectCount();
       } else {
-        header.style.gridTemplateColumns = '1fr 120px 80px';
+        header.style.gridTemplateColumns = '1fr 90px 120px 80px';
         header.innerHTML = `
           <span>E-Mail</span>
+          <span>Status</span>
           <span>Eingetragen am</span>
           <span>Aktion</span>
         `;
         body.innerHTML = subs.map(s => `
           <div class="grid items-center px-6 py-4 border-b border-gray-50 hover:bg-gray-50/50 transition-colors text-sm"
-            style="grid-template-columns: 1fr 120px 80px;">
+            style="grid-template-columns: 1fr 90px 120px 80px;">
             <span class="text-ink">${s.email}</span>
+            <span>${statusBadge(s.confirmed)}</span>
             <span class="text-gray-400">${s.datum}</span>
             <button onclick="deleteSub(${s.id})" class="text-xs text-red-500 hover:underline text-left">Löschen</button>
           </div>
@@ -1304,11 +1315,12 @@
 
     // ── Newsletter ──────────────────────────────────────────────
     let allSubsCache = [];
+    let confirmedSubsCache = [];
     let selectMode = false;
     let currentRecipients = [];
 
     function openNewsletterModal(recipients) {
-      currentRecipients = recipients || allSubsCache;
+      currentRecipients = recipients || confirmedSubsCache;
       const n = currentRecipients.length;
       const isAll = !recipients;
       document.getElementById('nl-sub-count').textContent = isAll

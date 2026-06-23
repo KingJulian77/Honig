@@ -336,6 +336,10 @@
   </footer>
 
   <script>
+    const BASE_URL = 'https://hochkamphonig.de'; // ← eigene Domain eintragen
+    const EMAILJS_SERVICE_ID  = 'service_knxwgs2';
+    const EMAILJS_DOI_TEMPLATE = 'template_n5rpq2a'; // ← Template-ID aus EmailJS-Dashboard
+
     function showToast(msg) {
       const toast = document.getElementById('toast');
       document.getElementById('toast-msg').textContent = msg;
@@ -571,13 +575,38 @@
       btn.disabled = true;
       btnText.textContent = 'Wird gespeichert…';
 
+      const { data: existing } = await sb
+        .from('subscribers')
+        .select('confirmed')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existing?.confirmed) {
+        input.value = '';
+        btn.disabled = false;
+        btnText.textContent = 'Benachrichtigen';
+        showToast('Diese E-Mail ist bereits für den Newsletter eingetragen.');
+        return;
+      }
+
+      const token = crypto.randomUUID();
       const datum = new Date().toLocaleDateString('de-DE');
-      await sb.from('subscribers').upsert({ email, datum }, { onConflict: 'email' });
+
+      await sb.from('subscribers').upsert(
+        { email, datum, confirmed: false, token, token_created_at: new Date().toISOString() },
+        { onConflict: 'email' }
+      );
+
+      const verificationLink = `${BASE_URL}/bestaetigung.html?token=${token}`;
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_DOI_TEMPLATE, {
+        to_email: email,
+        verification_link: verificationLink
+      });
 
       input.value = '';
       btn.disabled = false;
       btnText.textContent = 'Benachrichtigen';
-      showToast('Danke! Wir melden uns, sobald neuer Honig verfügbar ist.');
+      showToast('Fast geschafft! Bitte bestätige deine Anmeldung per E-Mail.');
     }
   </script>
 
