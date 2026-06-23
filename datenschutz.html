@@ -179,13 +179,21 @@
       <div class="border-t border-gray-200 pt-10 mb-10">
         <p class="text-honey text-[11px] tracking-[0.2em] uppercase mb-4 font-sans">6. Newsletter</p>
         <p class="text-gray-500 text-sm leading-relaxed">
-          Auf dieser Website besteht die Möglichkeit, einen Newsletter zu abonnieren. Dazu wird Ihre
-          E-Mail-Adresse erhoben und gespeichert. Die Anmeldung erfolgt durch einfache Eingabe der
-          E-Mail-Adresse (Single-Opt-In). Die Verarbeitung erfolgt auf Grundlage Ihrer
+          Auf dieser Website besteht die Möglichkeit, einen Newsletter zu abonnieren. Die Anmeldung
+          erfolgt ausschließlich im <strong class="text-ink font-medium">Double-Opt-In-Verfahren</strong>:
+          Nach Eingabe Ihrer E-Mail-Adresse erhalten Sie eine Bestätigungs-E-Mail mit einem
+          Bestätigungslink. Ihre Anmeldung wird erst wirksam, wenn Sie auf diesen Link klicken.
+          Damit wird sichergestellt, dass ausschließlich der Inhaber der eingegebenen
+          E-Mail-Adresse den Newsletter abonniert. Die Verarbeitung erfolgt auf Grundlage Ihrer
           ausdrücklichen Einwilligung (Art. 6 Abs. 1 lit. a DSGVO).<br><br>
-          Die E-Mail-Adressen werden in einer Datenbank bei
+          Im Rahmen der Anmeldung werden folgende Daten erhoben und gespeichert: E-Mail-Adresse,
+          Anmeldedatum sowie ein temporärer Bestätigungs-Token. Der Token wird nach erfolgter
+          Bestätigung automatisch gelöscht.<br><br>
+          Der Versand der Bestätigungsmail erfolgt über
+          <strong class="text-ink font-medium">EmailJS</strong> (EmailJS Ltd.). Die E-Mail-Adressen
+          werden dauerhaft in einer Datenbank bei
           <strong class="text-ink font-medium">Supabase</strong> (Supabase Inc.) gespeichert.
-          Supabase verarbeitet die Daten in unserem Auftrag auf Basis eines
+          Beide Dienstleister verarbeiten die Daten in unserem Auftrag auf Basis eines
           Auftragsverarbeitungsvertrags gemäß Art. 28 DSGVO.<br><br>
           Die E-Mail-Adresse wird gespeichert, solange Sie den Newsletter abonniert haben.
           Nach einer Abmeldung wird Ihre E-Mail-Adresse unverzüglich gelöscht, sofern keine
