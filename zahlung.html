@@ -252,6 +252,7 @@
           PayPal wird geladen…
         </div>
         <div id="paypal-button-container" class="mb-3"></div>
+        <div id="applepay-container" class="mb-3"></div>
 
         <!-- Manuell per PayPal überweisen -->
         <button onclick="finalizeManualOrder()"
@@ -557,6 +558,83 @@
         updatePrice();
       }
 
+      async function renderApplePay() {
+        if (!window.paypal || !paypal.Applepay) return;
+        try {
+          const applepay = paypal.Applepay();
+          const config   = await applepay.config();
+          if (!config.isEligible) return;
+
+          const container = document.getElementById('applepay-container');
+          if (!container) return;
+
+          // Apple Pay button styles
+          if (!document.getElementById('applepay-style')) {
+            const link = document.createElement('link');
+            link.id  = 'applepay-style';
+            link.rel = 'stylesheet';
+            link.href = 'https://applepay.cdn-apple.com/jsapi/v1.1.0/apple-pay-gesture.css';
+            document.head.appendChild(link);
+            const s2  = document.createElement('script');
+            s2.src    = 'https://applepay.cdn-apple.com/jsapi/v1.1.0/apple-pay-gesture.min.js';
+            document.head.appendChild(s2);
+          }
+
+          const btn = document.createElement('apple-pay-button');
+          btn.setAttribute('buttonstyle', 'black');
+          btn.setAttribute('type', 'buy');
+          btn.setAttribute('locale', 'de-DE');
+          btn.style.cssText = 'width:100%;height:48px;border-radius:999px;display:block;';
+
+          btn.addEventListener('click', async () => {
+            if (stockNow === 0) { showToast('Leider ist dieser Honig nicht mehr verfügbar.'); return; }
+            const qty   = Math.min(stockNow, Math.max(1, parseInt(qtyInput.value) || 1));
+            const total = qty * unitPriceNum;
+
+            const session = new ApplePaySession(14, {
+              countryCode:          'DE',
+              currencyCode:         'EUR',
+              merchantCapabilities: config.merchantCapabilities,
+              supportedNetworks:    config.supportedNetworks,
+              total: { label: 'Hochkamp Honig', amount: total.toFixed(2), type: 'final' }
+            });
+
+            session.onvalidatemerchant = async (e) => {
+              const v = await applepay.validateMerchant({ validationUrl: e.validationURL });
+              session.completeMerchantValidation(v.merchantSession);
+            };
+
+            session.onpaymentauthorized = async (e) => {
+              try {
+                const order = await applepay.createOrder({
+                  purchase_units: [{
+                    description: qty + (qty === 1 ? ' Glas' : ' Gläser') + ' Honig aus Hochkamp (' + draft.groesse + ')',
+                    amount: { currency_code: 'EUR', value: total.toFixed(2) }
+                  }]
+                });
+                await applepay.confirmOrder({
+                  orderId:        order.id,
+                  token:          e.payment.token,
+                  billingContact: e.payment.billingContact
+                });
+                session.completePayment(ApplePaySession.STATUS_SUCCESS);
+                finalizeOrder();
+              } catch (err) {
+                console.error(err);
+                session.completePayment(ApplePaySession.STATUS_FAILURE);
+                document.getElementById('paypal-error').classList.remove('hidden');
+              }
+            };
+
+            session.begin();
+          });
+
+          container.appendChild(btn);
+        } catch (err) {
+          console.warn('Apple Pay nicht verfügbar:', err);
+        }
+      }
+
       function renderPayPalButtons() {
         const paypalLoading = document.getElementById('paypal-loading');
         if (typeof paypal !== 'undefined') {
@@ -582,6 +660,7 @@
             }
           }).render('#paypal-button-container').then(() => {
             if (paypalLoading) paypalLoading.style.display = 'none';
+            renderApplePay();
           });
         } else {
           if (paypalLoading) paypalLoading.style.display = 'none';
@@ -592,7 +671,7 @@
 
       function loadPayPalThenRender() {
         var s = document.createElement('script');
-        s.src = 'https://www.paypal.com/sdk/js?client-id=AbcIP8fVsAStn1set-EVWQq_vrgCat8O1tR2X9Phyus9T1tdUJqbvsO2iuWGyEpX4a9d4QOXPHZdt6qC&currency=EUR&locale=de_DE&intent=capture&disable-funding=sepa,card';
+        s.src = 'https://www.paypal.com/sdk/js?client-id=AbcIP8fVsAStn1set-EVWQq_vrgCat8O1tR2X9Phyus9T1tdUJqbvsO2iuWGyEpX4a9d4QOXPHZdt6qC&currency=EUR&locale=de_DE&intent=capture&disable-funding=sepa,card&components=buttons,applepay';
         s.onload = renderPayPalButtons;
         s.onerror = function() {
           var l = document.getElementById('paypal-loading');
