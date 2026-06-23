@@ -665,9 +665,9 @@
       }
 
       variantMap = {};
-      data.forEach(v => { variantMap[v.weight + '-' + v.tracht] = { id: v.id, quantity: v.quantity, price: v.price, year: v.year, image_url: v.image_url }; });
+      data.forEach(v => { variantMap[ensureG(v.weight) + '-' + v.tracht] = { id: v.id, quantity: v.quantity, price: v.price, year: v.year, image_url: v.image_url }; });
 
-      const weights = [...new Set(data.map(v => v.weight))];
+      const weights = [...new Set(data.map(v => ensureG(v.weight)))];
       const tracts  = [...new Set(data.map(v => v.tracht))];
 
       document.getElementById('variants').innerHTML = weights.map((w, i) => `<button

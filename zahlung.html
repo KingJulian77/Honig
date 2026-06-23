@@ -374,7 +374,8 @@
         }
       }
 
-      const stockKey = draft.groesse + '-' + (draft.tracht || 'frühtracht');
+      const trachtRaw        = draft.tracht || 'frühtracht';
+      const trachtNormalized = trachtRaw.charAt(0).toUpperCase() + trachtRaw.slice(1);
       const qtyInput = document.getElementById('qty');
       let   stockNow = 0;
 
@@ -409,7 +410,11 @@
       }
 
       async function createOrder(isPaid) {
-        const { data: fresh } = await sb.from('stock').select('quantity').eq('variant', stockKey).single();
+        const { data: fresh } = await sb.from('variants')
+          .select('id, quantity')
+          .eq('weight', draft.groesse)
+          .eq('tracht', trachtNormalized)
+          .single();
         const available = fresh ? fresh.quantity : 0;
         const qty       = Math.min(available, Math.max(1, parseInt(qtyInput.value) || 1));
 
@@ -420,9 +425,9 @@
 
         const total = qty * unitPriceNum;
 
-        const { error: stockErr } = await sb.from('stock')
+        const { error: stockErr } = await sb.from('variants')
           .update({ quantity: available - qty })
-          .eq('variant', stockKey);
+          .eq('id', fresh.id);
 
         if (stockErr) {
           showToast('Fehler beim Aktualisieren des Bestands. Bitte versuche es erneut.');
@@ -477,7 +482,7 @@
       }
 
       async function loadStock() {
-        const { data } = await sb.from('stock').select('quantity').eq('variant', stockKey).single();
+        const { data } = await sb.from('variants').select('quantity').eq('weight', draft.groesse).eq('tracht', trachtNormalized).single();
         stockNow       = data ? data.quantity : 0;
         qtyInput.max   = stockNow > 0 ? stockNow : 1;
         qtyInput.value = Math.min(stockNow > 0 ? stockNow : 1, Math.max(1, draft.anzahl || 1));
