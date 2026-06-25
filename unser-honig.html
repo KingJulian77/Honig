@@ -572,7 +572,7 @@
       if (stock > 0 && parseInt(qtyInput.value) > stock) qtyInput.value = stock;
       const qty      = stock > 0 ? Math.min(stock, Math.max(1, parseInt(qtyInput.value) || 1)) : 1;
 
-      const priceNum = parseFloat(price.replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
+      const priceNum = parseFloat(price.replace(/[^0-9,.]/g, '').replace(',', '.')) || 0;
       const total    = qty * priceNum;
       const totalFmt = total.toFixed(2).replace('.', ',') + ' €';
 

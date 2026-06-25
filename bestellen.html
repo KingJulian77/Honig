@@ -451,7 +451,7 @@
     anzahl  = anzahl  || 1;
     let tracht = params.get('tracht') || (draft && draft.tracht) || 'frühtracht';
 
-    const unitNum = parseFloat(preis.replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
+    const unitNum = parseFloat(preis.replace(/[^0-9,.]/g, '').replace(',', '.')) || 0;
     let rabattProzent = 0;
 
     function updateSummaryDisplay() {

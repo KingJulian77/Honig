@@ -415,7 +415,7 @@
       document.getElementById('change-data-link').href =
         'bestellen.html?groesse=' + encodeURIComponent(draft.groesse) + '&preis=' + encodeURIComponent(draft.preis);
 
-      const baseUnitPrice = parseFloat(draft.preis.replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
+      const baseUnitPrice = parseFloat(draft.preis.replace(/[^0-9,.]/g, '').replace(',', '.')) || 0;
       const rabattProzent = draft.rabattProzent || 0;
       const unitPriceNum  = baseUnitPrice * (1 - rabattProzent / 100);
 

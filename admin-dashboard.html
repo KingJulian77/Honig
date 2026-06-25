@@ -1128,12 +1128,18 @@
       const weight = document.getElementById('new-weight').value.trim();
       const tracht = document.getElementById('new-tracht').value.trim();
       const year   = parseInt(document.getElementById('new-year').value) || null;
-      const price  = document.getElementById('new-price').value.trim();
-      const qty    = parseInt(document.getElementById('new-qty').value) || 0;
-      if (!weight || !tracht || !price) {
+      const rawPrice  = document.getElementById('new-price').value.trim();
+      const qty       = parseInt(document.getElementById('new-qty').value) || 0;
+      if (!weight || !tracht || !rawPrice) {
         showVariantFeedback('Bitte Gewicht, Tracht und Preis angeben.', 'red');
         return;
       }
+      const priceNum = parseFloat(rawPrice.replace(/[^0-9,.]/g, '').replace(',', '.'));
+      if (!priceNum || isNaN(priceNum)) {
+        showVariantFeedback('Bitte einen gültigen Preis eingeben (z. B. 8,00 €).', 'red');
+        return;
+      }
+      const price = priceNum.toFixed(2).replace('.', ',') + ' €';
 
       const { error } = await sb.from('variants').insert({ weight, tracht, year, price, quantity: qty, image_url: selectedImageUrl });
       if (error) {
@@ -1256,7 +1262,7 @@
         return p.length === 3 ? new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0])) : new Date(0);
       }
       function parsePrice(preis) {
-        return parseFloat((preis || '0').replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
+        return parseFloat((preis || '0').replace(/[^0-9,.]/g, '').replace(',', '.')) || 0;
       }
       function parseJars(groesse) {
         const m = (groesse || '').match(/[×x]\s*(\d+)/i);
