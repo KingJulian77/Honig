@@ -414,8 +414,7 @@
         }
       }
 
-      const trachtRaw        = draft.tracht || 'frühtracht';
-      const trachtNormalized = trachtRaw.charAt(0).toUpperCase() + trachtRaw.slice(1);
+      const trachtRaw = draft.tracht || 'frühtracht';
       const qtyInput = document.getElementById('qty');
       let   stockNow = 0;
 
@@ -432,7 +431,7 @@
         const { data: fresh } = await sb.from('variants')
           .select('id, quantity')
           .eq('weight', draft.groesse)
-          .eq('tracht', trachtNormalized)
+          .ilike('tracht', trachtRaw)
           .single();
         const available = fresh ? fresh.quantity : 0;
         const qty       = Math.min(available, Math.max(1, parseInt(qtyInput.value) || 1));
@@ -516,7 +515,7 @@
       }
 
       async function loadStock() {
-        const { data } = await sb.from('variants').select('quantity').eq('weight', draft.groesse).eq('tracht', trachtNormalized).single();
+        const { data } = await sb.from('variants').select('quantity').eq('weight', draft.groesse).ilike('tracht', trachtRaw).single();
         stockNow       = data ? data.quantity : 0;
         qtyInput.max   = stockNow > 0 ? stockNow : 1;
         qtyInput.value = Math.min(stockNow > 0 ? stockNow : 1, Math.max(1, draft.anzahl || 1));
