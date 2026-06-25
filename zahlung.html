@@ -470,6 +470,7 @@
         }).select('id').single();
 
         if (orderErr) {
+          await sb.from('variants').update({ quantity: available }).eq('id', fresh.id);
           showToast('Fehler beim Speichern der Bestellung. Bitte versuche es erneut.');
           return;
         }
