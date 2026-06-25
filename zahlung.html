@@ -242,7 +242,7 @@
         <div id="applepay-container" class="mb-3"></div>
 
         <!-- Manuell per PayPal überweisen -->
-        <button onclick="finalizeManualOrder()"
+        <button onclick="if(stockNow===0){showToast('Leider ist dieser Honig nicht mehr verfügbar.');return;}finalizeManualOrder()"
           class="w-full border border-gray-300 text-ink text-sm font-sans font-medium py-3 rounded-full hover:bg-gray-50 active:bg-gray-100 transition-colors duration-150 mb-3"
           style="letter-spacing:0.01em;">
           Selbst per PayPal überweisen
@@ -520,6 +520,9 @@
         stockNow       = data ? data.quantity : 0;
         qtyInput.max   = stockNow > 0 ? stockNow : 1;
         qtyInput.value = Math.min(stockNow > 0 ? stockNow : 1, Math.max(1, draft.anzahl || 1));
+        if (stockNow > 0 && (draft.anzahl || 1) > stockNow) {
+          showToast('Nur noch ' + stockNow + ' Glas' + (stockNow > 1 ? 'er' : '') + ' verfügbar – Menge wurde angepasst.');
+        }
         updatePrice();
       }
 
@@ -657,23 +660,24 @@
           + '</div>';
       }
 
-      // Load PayPal only after cookie consent
-      var consent = window.cookieBanner ? window.cookieBanner.getConsent() : null;
-      if (consent === 'all') {
-        loadPayPalThenRender();
-      } else if (consent === 'necessary') {
-        showPayPalConsentHint();
-      } else {
-        document.addEventListener('cookieConsentSet', function(e) {
-          if (e.detail.consent === 'all') {
-            loadPayPalThenRender();
-          } else {
-            showPayPalConsentHint();
-          }
-        }, { once: true });
-      }
-
-      loadStock();
+      // Load PayPal only after stock is confirmed – prevents the race condition
+      // where stockNow is still 0 when the user clicks the PayPal button
+      loadStock().then(function() {
+        var consent = window.cookieBanner ? window.cookieBanner.getConsent() : null;
+        if (consent === 'all') {
+          loadPayPalThenRender();
+        } else if (consent === 'necessary') {
+          showPayPalConsentHint();
+        } else {
+          document.addEventListener('cookieConsentSet', function(e) {
+            if (e.detail.consent === 'all') {
+              loadPayPalThenRender();
+            } else {
+              showPayPalConsentHint();
+            }
+          }, { once: true });
+        }
+      });
     }
 
     async function saveSubscriber() {
