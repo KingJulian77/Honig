@@ -1106,8 +1106,16 @@
 
     async function saveVariant(id) {
       const qty = parseInt(document.getElementById('qty-' + id).value) || 0;
+      const btn = document.querySelector(`button[onclick="saveVariant(${id})"]`);
       await sb.from('variants').update({ quantity: qty }).eq('id', id);
-      showVariantFeedback('✓ Gespeichert – Änderungen sind live auf der Website', 'green');
+      if (btn) {
+        btn.textContent = '✓ Gespeichert';
+        btn.style.background = '#15803d';
+        setTimeout(() => {
+          btn.textContent = 'Speichern';
+          btn.style.background = '';
+        }, 2500);
+      }
     }
 
     async function deleteVariant(id) {
