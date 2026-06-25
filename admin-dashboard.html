@@ -137,9 +137,10 @@
       <div class="bg-white border border-gray-200 rounded-2xl p-8">
 
         <p class="text-xs text-gray-400 uppercase tracking-wider mb-6">Vorhandene Varianten</p>
-        <div id="variants-list" class="space-y-3 mb-8">
+        <div id="variants-list" class="space-y-3 mb-4">
           <p class="text-sm text-gray-400">Wird geladen …</p>
         </div>
+        <span id="variant-feedback" class="hidden text-sm font-medium mb-6 block"></span>
 
         <div class="border-t border-gray-100 pt-6">
           <button onclick="toggleAddVariant()"
@@ -209,7 +210,6 @@
                 style="font-family:'DM Sans',sans-serif;letter-spacing:0.02em;">
                 Variante hinzufügen →
               </button>
-              <span id="variant-feedback" class="hidden text-sm font-medium"></span>
             </div>
           </div>
         </div>
