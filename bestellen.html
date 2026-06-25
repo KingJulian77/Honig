@@ -250,20 +250,6 @@
               </div>
             </div>
 
-            <div>
-              <label for="email" class="field-label">
-                E-Mail-Adresse
-                <span class="text-gray-400 font-normal">(optional, für Bestellbestätigung)</span>
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                placeholder="deine@email.de"
-                autocomplete="email"
-                class="w-full border border-gray-300 rounded-full px-5 py-3 text-sm bg-white transition-colors duration-150"
-              >
-            </div>
           </fieldset>
 
           <!-- Lieferadresse -->
@@ -507,7 +493,6 @@
     if (draft) {
       if (draft.vorname)    document.getElementById('vorname').value    = draft.vorname;
       if (draft.nachname)   document.getElementById('nachname').value   = draft.nachname;
-      if (draft.email)      document.getElementById('email').value      = draft.email;
       if (draft.strasse)    document.getElementById('strasse').value    = draft.strasse;
       if (draft.hausnummer) document.getElementById('hausnummer').value = draft.hausnummer;
       if (draft.plz)        document.getElementById('plz').value        = draft.plz;
@@ -526,7 +511,6 @@
 
       const vorname    = document.getElementById('vorname').value.trim();
       const nachname   = document.getElementById('nachname').value.trim();
-      const email      = document.getElementById('email').value.trim();
       const strasse    = document.getElementById('strasse').value.trim();
       const hausnummer = document.getElementById('hausnummer').value.trim();
       const plz        = document.getElementById('plz').value.trim();
@@ -609,7 +593,7 @@
       if (btnArrow) btnArrow.style.display = '';
 
       sessionStorage.setItem('honig_order_draft', JSON.stringify({
-        vorname, nachname, email, strasse, hausnummer, plz, stadt, groesse, tracht, preis, anzahl,
+        vorname, nachname, strasse, hausnummer, plz, stadt, groesse, tracht, preis, anzahl,
         rabattCode: document.getElementById('rabatt-code').value.trim(),
         rabattProzent
       }));
