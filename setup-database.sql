@@ -75,7 +75,9 @@ WHERE id NOT IN (
 DO $$ BEGIN
   ALTER TABLE variants
     ADD CONSTRAINT variants_weight_tracht_unique UNIQUE (weight, tracht);
-EXCEPTION WHEN duplicate_object THEN NULL;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;  -- Constraint existiert bereits
+  WHEN duplicate_table  THEN NULL;  -- gleichnamiger Index existiert bereits
 END $$;
 
 
@@ -140,6 +142,7 @@ DROP POLICY IF EXISTS "subscribers_authenticated" ON subscribers;
 DROP POLICY IF EXISTS "subscribers_read"          ON subscribers;
 DROP POLICY IF EXISTS "subscribers_write"         ON subscribers;
 DROP POLICY IF EXISTS "subscribers_anon"          ON subscribers;
+DROP POLICY IF EXISTS "subscribers_update"        ON subscribers;
 
 -- variants
 DROP POLICY IF EXISTS "variants_all"         ON variants;
