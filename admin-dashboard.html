@@ -1133,7 +1133,8 @@
     }
 
     async function addVariant() {
-      const weight = document.getElementById('new-weight').value.trim();
+      const rawWeight = document.getElementById('new-weight').value.trim();
+      const weight    = (rawWeight && !rawWeight.endsWith('g')) ? rawWeight + 'g' : rawWeight;
       const trachtInput = document.getElementById('new-tracht').value.trim();
       const tracht = trachtInput.charAt(0).toUpperCase() + trachtInput.slice(1);
       const year   = parseInt(document.getElementById('new-year').value) || null;
