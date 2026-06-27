@@ -63,9 +63,24 @@ ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS token            TEXT UNIQUE;
 ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS token_created_at TIMESTAMPTZ DEFAULT NOW();
 
 
--- ── 3. UNIQUE Constraint auf variants (verhindert Duplikate) ─────────
+-- ── 3. Gewichte vereinheitlichen + Duplikate entfernen + UNIQUE Constraint ──
 
--- Erst Duplikate entfernen: pro (weight, tracht) nur den ältesten Eintrag behalten
+-- Falls eine Variante doppelt existiert (einmal "375", einmal "375g" derselben
+-- Tracht), die Zeile OHNE "g" verwerfen – die korrekte "…g"-Zeile hat Vorrang.
+DELETE FROM variants v
+WHERE right(lower(v.weight), 1) <> 'g'
+  AND EXISTS (
+    SELECT 1 FROM variants w
+    WHERE w.tracht = v.tracht
+      AND lower(w.weight) = lower(v.weight) || 'g'
+  );
+
+-- Verbleibende Gewichte ohne "g" angleichen: 375 -> 375g, 160 -> 160g
+UPDATE variants
+SET    weight = weight || 'g'
+WHERE  weight <> '' AND right(lower(weight), 1) <> 'g';
+
+-- Exakte Duplikate entfernen: pro (weight, tracht) nur den ältesten Eintrag behalten
 DELETE FROM variants
 WHERE id NOT IN (
   SELECT MIN(id) FROM variants GROUP BY weight, tracht
