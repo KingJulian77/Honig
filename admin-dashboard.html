@@ -13,6 +13,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="sb.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="invoice.js"></script>
   <script>emailjs.init('krQRCnNy9nv3DaLM7');</script>
   <script>
     tailwind.config = {
@@ -780,6 +782,25 @@
       <path d="M6.5 7v4M9.5 7v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
     </svg>`;
 
+    const DOWNLOAD_ICON = `<svg width="11" height="11" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;">
+      <path d="M8 2v8M8 10l3-3M8 10L5 7M2.5 11.5v1A1.5 1.5 0 0 0 4 14h8a1.5 1.5 0 0 0 1.5-1.5v-1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+
+    // Erzeugt dieselbe Rechnungs-PDF wie der Kunden-Download (zahlung.html) aus einem Order-Datensatz.
+    window.downloadOrderInvoice = function(id) {
+      const o = allOrdersCache.find(x => x.id === id);
+      if (o) HonigInvoice.generateInvoicePdf(HonigInvoice.invoiceDataFromOrder(o));
+    };
+
+    // Kleiner Rechnung-Download-Button neben der Bestellnummer.
+    function invoiceBtn(id, faded) {
+      return `<button onclick="downloadOrderInvoice(${id})" title="Rechnung herunterladen"
+        style="margin-top:4px;display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;letter-spacing:0.03em;color:#B8862A;background:none;border:1px solid #B8862A;border-radius:6px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;${faded ? 'opacity:0.6;' : ''}"
+        onmouseover="this.style.background='#fffbeb'" onmouseout="this.style.background='none'">
+        ${DOWNLOAD_ICON} Rechnung
+      </button>`;
+    }
+
     function renderOrders(orders) {
       const body = document.getElementById('orders-body');
 
@@ -792,7 +813,10 @@
         <!-- Desktop row -->
         <div class="hidden md:grid items-center px-6 py-4 border-b border-gray-50 hover:bg-gray-50/50 transition-colors text-sm"
           style="grid-template-columns:${COL};">
-          <span style="font-size:11px;font-weight:600;color:#B8862A;letter-spacing:0.04em;">${orderNum(o.id)}</span>
+          <div>
+            <span style="font-size:11px;font-weight:600;color:#B8862A;letter-spacing:0.04em;">${orderNum(o.id)}</span>
+            ${invoiceBtn(o.id)}
+          </div>
           <span class="text-gray-400">${o.datum}</span>
           <div>
             <span class="text-ink font-medium">${o.vorname || ''} ${o.nachname || ''}</span>
@@ -828,6 +852,7 @@
               <p class="font-medium text-ink">${o.vorname || ''} ${o.nachname || ''}</p>
               ${o.email ? `<p class="text-gray-400 text-xs">${o.email}</p>` : ''}
               <p class="text-gray-400 text-xs">${o.datum}</p>
+              ${invoiceBtn(o.id)}
             </div>
             <span class="status-badge status-${o.status}">${statusLabel(o.status)}</span>
           </div>
@@ -864,7 +889,10 @@
         <!-- Desktop row -->
         <div class="hidden md:grid items-center px-6 py-4 border-b border-gray-50 text-sm"
           style="grid-template-columns:${COL};">
-          <span style="font-size:11px;font-weight:600;color:#B8862A;letter-spacing:0.04em;opacity:0.6;">${orderNum(o.id)}</span>
+          <div>
+            <span style="font-size:11px;font-weight:600;color:#B8862A;letter-spacing:0.04em;opacity:0.6;">${orderNum(o.id)}</span>
+            ${invoiceBtn(o.id, true)}
+          </div>
           <span class="text-gray-400">${o.datum}</span>
           <div>
             <span class="text-gray-400">${o.vorname || ''} ${o.nachname || ''}</span>
@@ -898,6 +926,7 @@
               <p class="text-gray-400 font-medium">${o.vorname || ''} ${o.nachname || ''}</p>
               ${o.email ? `<p class="text-gray-400 text-xs">${o.email}</p>` : ''}
               <p class="text-gray-400 text-xs">${o.datum}</p>
+              ${invoiceBtn(o.id, true)}
             </div>
             <span class="status-badge" style="background:#F3F4F6;color:#9CA3AF;">Archiviert</span>
           </div>
