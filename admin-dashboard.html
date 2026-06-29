@@ -228,7 +228,7 @@
       <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-4">
         <!-- Table header (desktop only) -->
         <div class="hidden md:grid text-xs font-medium text-gray-400 uppercase tracking-wider px-6 py-4 border-b border-gray-100"
-          style="grid-template-columns: 70px 100px 130px 1fr 80px 90px 120px 190px;">
+          style="grid-template-columns: 100px 90px 130px 1fr 80px 90px 120px 170px;">
           <span>Bestellnr.</span>
           <span>Datum</span>
           <span>Name</span>
@@ -256,7 +256,7 @@
       <div id="archived-section" class="hidden">
         <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden" style="opacity:0.8;">
           <div class="hidden md:grid text-xs font-medium text-gray-400 uppercase tracking-wider px-6 py-4 border-b border-gray-100"
-            style="grid-template-columns: 70px 100px 130px 1fr 80px 90px 120px 190px;">
+            style="grid-template-columns: 100px 90px 130px 1fr 80px 90px 120px 170px;">
             <span>Bestellnr.</span>
             <span>Datum</span>
             <span>Name</span>
@@ -771,7 +771,7 @@
       return map[s] || s;
     }
 
-    const COL = '70px 100px 130px 1fr 80px 90px 120px 190px';
+    const COL = '100px 90px 130px 1fr 80px 90px 120px 170px';
 
     function orderNum(id) {
       return '#' + String(id).padStart(4, '0');
@@ -795,7 +795,7 @@
     // Kleiner Rechnung-Download-Button neben der Bestellnummer.
     function invoiceBtn(id, faded) {
       return `<button onclick="downloadOrderInvoice(${id})" title="Rechnung herunterladen"
-        style="margin-top:4px;display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;letter-spacing:0.03em;color:#B8862A;background:none;border:1px solid #B8862A;border-radius:6px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;${faded ? 'opacity:0.6;' : ''}"
+        style="margin-top:4px;display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;letter-spacing:0.03em;color:#B8862A;background:none;border:1px solid #B8862A;border-radius:6px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;${faded ? 'opacity:0.6;' : ''}"
         onmouseover="this.style.background='#fffbeb'" onmouseout="this.style.background='none'">
         ${DOWNLOAD_ICON} Rechnung
       </button>`;
