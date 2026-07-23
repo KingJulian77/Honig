@@ -67,13 +67,35 @@
       <!-- Password -->
       <div class="mb-8">
         <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Passwort</label>
-        <input
-          type="password"
-          id="password"
-          placeholder="Passwort eingeben"
-          class="w-full border border-gray-300 rounded-full px-5 py-3 text-sm bg-cream transition-colors"
-          autocomplete="current-password"
-        >
+        <div class="relative">
+          <input
+            type="password"
+            id="password"
+            placeholder="Passwort eingeben"
+            class="w-full border border-gray-300 rounded-full pl-5 pr-12 py-3 text-sm bg-cream transition-colors"
+            autocomplete="current-password"
+          >
+          <button
+            type="button"
+            id="toggle-password"
+            aria-label="Passwort anzeigen"
+            tabindex="-1"
+            class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-honey transition-colors"
+          >
+            <!-- Auge (Passwort verborgen) -->
+            <svg id="eye-open" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <!-- Durchgestrichenes Auge (Passwort sichtbar) -->
+            <svg id="eye-off" class="hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6.5 0 10 8 10 8a13.16 13.16 0 0 1-1.67 2.68"></path>
+              <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3.5 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path>
+              <path d="M9.9 14.1A3 3 0 0 1 14.12 9.88"></path>
+              <line x1="2" y1="2" x2="22" y2="22"></line>
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- Error -->
@@ -112,6 +134,19 @@
     document.querySelectorAll('input').forEach(input => {
       input.addEventListener('focus', () => input.style.borderColor = '#B8862A');
       input.addEventListener('blur',  () => input.style.borderColor = '');
+    });
+
+    // Passwort anzeigen / verbergen
+    document.getElementById('toggle-password').addEventListener('click', () => {
+      const pw     = document.getElementById('password');
+      const eyeOn  = document.getElementById('eye-open');
+      const eyeOff = document.getElementById('eye-off');
+      const btn    = document.getElementById('toggle-password');
+      const show   = pw.type === 'password';
+      pw.type = show ? 'text' : 'password';
+      eyeOn.classList.toggle('hidden', show);
+      eyeOff.classList.toggle('hidden', !show);
+      btn.setAttribute('aria-label', show ? 'Passwort verbergen' : 'Passwort anzeigen');
     });
 
     document.getElementById('login-form').addEventListener('submit', async function(e) {
