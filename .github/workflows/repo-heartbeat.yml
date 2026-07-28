@@ -31,13 +31,15 @@ jobs:
           git config user.name  'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-          # Unverändert? Dann nichts tun, damit der Job nicht unnötig rot wird.
-          if git diff --quiet -- .github/last-heartbeat.txt; then
+          # Erst stagen, dann gegen den Index prüfen: "git diff" allein sieht eine noch
+          # nicht getrackte Datei nicht und würde den Commit für immer überspringen.
+          git add .github/last-heartbeat.txt
+
+          if git diff --cached --quiet -- .github/last-heartbeat.txt; then
             echo "Kein neuer Zeitstempel – nichts zu committen."
             exit 0
           fi
 
-          git add .github/last-heartbeat.txt
           git commit -m "chore: repo-heartbeat $(date -u '+%Y-%m-%d')"
           git push
           echo "Heartbeat gesetzt."
