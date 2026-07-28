@@ -220,10 +220,10 @@
         </div>
 
         <!-- Per PayPal überweisen (einzige Zahlungsart) -->
-        <button onclick="finalizeManualOrder()"
+        <button id="pay-btn" onclick="finalizeManualOrder()"
           class="w-full bg-honey text-white text-sm font-sans font-medium py-3 rounded-full hover:opacity-90 active:opacity-80 transition-opacity duration-150 mb-3"
           style="letter-spacing:0.01em;">
-          Per PayPal überweisen
+          <span id="pay-btn-text">Per PayPal überweisen</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:inline;margin-left:4px;vertical-align:middle;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </button>
 
@@ -466,17 +466,33 @@
         document.getElementById('total-price').textContent  = formatPrice(total);
       }
 
+      // Sperrt den Bezahl-Button, damit keine Bestellung ausgelöst werden kann.
+      function blockPayment() {
+        const payBtn  = document.getElementById('pay-btn');
+        const payText = document.getElementById('pay-btn-text');
+        if (payText) payText.textContent = 'Aktuell ausverkauft';
+        if (payBtn) {
+          payBtn.disabled        = true;
+          payBtn.style.opacity   = '0.45';
+          payBtn.style.cursor    = 'not-allowed';
+        }
+      }
+
       async function loadStock() {
         const { data, error } = await sb.from('variants').select('quantity').eq('weight', draft.groesse).ilike('tracht', trachtRaw).single();
 
         // PGRST116 = kein Treffer; jeder andere Fehler heißt "Datenbank nicht erreichbar".
         if (error && error.code !== 'PGRST116') {
+          // Bestand unbekannt -> wie ausverkauft behandeln und Bestellung sperren.
+          stockNow = 0;
+          blockPayment();
           showToast('Verbindung zum Shop fehlgeschlagen. Bitte lade die Seite neu.');
           updatePrice();
           return;
         }
 
-        stockNow       = data ? data.quantity : 0;
+        stockNow = data ? data.quantity : 0;
+        if (stockNow === 0) blockPayment();
         qtyInput.max   = stockNow > 0 ? stockNow : 1;
         qtyInput.value = Math.min(stockNow > 0 ? stockNow : 1, Math.max(1, draft.anzahl || 1));
         if (stockNow > 0 && (draft.anzahl || 1) > stockNow) {

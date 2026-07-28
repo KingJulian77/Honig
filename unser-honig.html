@@ -527,6 +527,35 @@
 
     let variantMap = {}; // key: "375g-Frühtracht", value: { id, quantity, price, year }
 
+    // Setzt die Seite in den Ausverkauft-Zustand und sperrt den Bestell-Button.
+    // offline = true: Supabase nicht erreichbar. Dann wird zusätzlich das
+    // Benachrichtigen-Formular ausgeblendet – es schreibt selbst in die Datenbank
+    // und könnte gerade nichts speichern.
+    function applySoldOut(offline) {
+      const bestellBtn   = document.getElementById('bestell-btn');
+      const bestellText  = document.getElementById('bestell-btn-text');
+      const bestellArrow = document.getElementById('bestell-btn-arrow');
+      const stockTxt     = document.getElementById('stock-text');
+      const stockBar     = document.getElementById('stock-bar');
+      const notifyForm   = document.getElementById('stock-notify-form');
+
+      stockTxt.textContent           = 'Aktuell ausverkauft';
+      stockTxt.style.color           = '#ef4444';
+      stockBar.style.width           = '0%';
+      stockBar.setAttribute('aria-valuenow', '0');
+      bestellText.textContent        = 'Aktuell ausverkauft';
+      if (bestellArrow) bestellArrow.style.display = 'none';
+      bestellBtn.style.pointerEvents = 'none';
+      bestellBtn.style.opacity       = '0.45';
+
+      // pointer-events allein reicht nicht: ein <a href> bleibt per Tab + Enter
+      // erreichbar. Ohne href ist der Link kein Ziel mehr für die Tastatur.
+      bestellBtn.removeAttribute('href');
+      bestellBtn.setAttribute('aria-disabled', 'true');
+
+      if (notifyForm) notifyForm.classList[offline ? 'add' : 'remove']('hidden');
+    }
+
     function updateDisplay() {
       const btn = document.querySelector('.variant-btn.active');
       if (!btn) return;
@@ -591,15 +620,7 @@
       else { totalLine.style.display = 'none'; }
 
       if (stock === 0) {
-        stockTxt.textContent           = 'Aktuell ausverkauft';
-        stockTxt.style.color           = '#ef4444';
-        stockBar.style.width           = '0%';
-        bestellText.textContent        = 'Aktuell ausverkauft';
-        if (bestellArrow) bestellArrow.style.display = 'none';
-        bestellBtn.style.pointerEvents = 'none';
-        bestellBtn.style.opacity       = '0.45';
-        stockBar.setAttribute('aria-valuenow', '0');
-        if (notifyForm) notifyForm.classList.remove('hidden');
+        applySoldOut(false);
       } else {
         const label = stock <= 3 ? `Nur noch ${stock} Glas verfügbar!` : `Noch ${stock} Gläser verfügbar`;
         stockTxt.textContent           = label;
@@ -615,6 +636,7 @@
         const p = encodeURIComponent(price);
         const t = encodeURIComponent(tracht);
         bestellBtn.href = `bestellen.html?groesse=${g}&preis=${p}&anzahl=${qty}&tracht=${t}`;
+        bestellBtn.removeAttribute('aria-disabled');
         if (notifyForm) notifyForm.classList.add('hidden');
       }
 
@@ -657,15 +679,21 @@
     async function loadVariants() {
       const { data, error } = await sb.from('variants').select('*').order('created_at', { ascending: true });
       if (error) {
-        document.getElementById('variants').innerHTML = '<p class="text-sm text-gray-400">Der Shop ist gerade nicht erreichbar. Bitte versuche es in Kürze erneut.</p>';
+        // Kein Bestand ermittelbar -> als ausverkauft zeigen und Bestellung sperren.
+        // updateDisplay() hilft hier nicht: ohne aktiven Varianten-Button steigt es
+        // sofort aus und die statischen HTML-Werte ("Noch 12 Gläser verfügbar",
+        // klickbarer Bestell-Button) blieben stehen.
+        document.getElementById('variants').innerHTML = '<p class="text-sm text-gray-400">Aktuell nicht verfügbar.</p>';
         document.getElementById('tracht-buttons').innerHTML = '';
-        updateDisplay();
+        applySoldOut(true);
         return;
       }
       if (!data || data.length === 0) {
+        // Gleiche Falle wie oben: updateDisplay() würde ohne aktiven Button aussteigen.
+        // Datenbank ist hier erreichbar, das Benachrichtigen-Formular darf also bleiben.
         document.getElementById('variants').innerHTML = '<p class="text-sm text-gray-400">Keine Varianten verfügbar.</p>';
         document.getElementById('tracht-buttons').innerHTML = '';
-        updateDisplay();
+        applySoldOut(false);
         return;
       }
 
