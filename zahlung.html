@@ -374,11 +374,19 @@
       }
 
       async function createOrder() {
-        const { data: fresh } = await sb.from('variants')
+        const { data: fresh, error: freshErr } = await sb.from('variants')
           .select('id, quantity')
           .eq('weight', draft.groesse)
           .ilike('tracht', trachtRaw)
           .single();
+
+        // PGRST116 = kein Treffer (Variante existiert nicht) – alles andere ist ein
+        // Verbindungsproblem und darf nicht als "ausverkauft" durchgehen.
+        if (freshErr && freshErr.code !== 'PGRST116') {
+          showToast('Bestellung konnte nicht gesendet werden. Bitte versuche es in Kürze erneut.');
+          return;
+        }
+
         const available = fresh ? fresh.quantity : 0;
         const qty       = Math.min(available, Math.max(1, parseInt(qtyInput.value) || 1));
 
@@ -459,7 +467,15 @@
       }
 
       async function loadStock() {
-        const { data } = await sb.from('variants').select('quantity').eq('weight', draft.groesse).ilike('tracht', trachtRaw).single();
+        const { data, error } = await sb.from('variants').select('quantity').eq('weight', draft.groesse).ilike('tracht', trachtRaw).single();
+
+        // PGRST116 = kein Treffer; jeder andere Fehler heißt "Datenbank nicht erreichbar".
+        if (error && error.code !== 'PGRST116') {
+          showToast('Verbindung zum Shop fehlgeschlagen. Bitte lade die Seite neu.');
+          updatePrice();
+          return;
+        }
+
         stockNow       = data ? data.quantity : 0;
         qtyInput.max   = stockNow > 0 ? stockNow : 1;
         qtyInput.value = Math.min(stockNow > 0 ? stockNow : 1, Math.max(1, draft.anzahl || 1));

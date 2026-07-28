@@ -655,7 +655,13 @@
     }
 
     async function loadVariants() {
-      const { data } = await sb.from('variants').select('*').order('created_at', { ascending: true });
+      const { data, error } = await sb.from('variants').select('*').order('created_at', { ascending: true });
+      if (error) {
+        document.getElementById('variants').innerHTML = '<p class="text-sm text-gray-400">Der Shop ist gerade nicht erreichbar. Bitte versuche es in Kürze erneut.</p>';
+        document.getElementById('tracht-buttons').innerHTML = '';
+        updateDisplay();
+        return;
+      }
       if (!data || data.length === 0) {
         document.getElementById('variants').innerHTML = '<p class="text-sm text-gray-400">Keine Varianten verfügbar.</p>';
         document.getElementById('tracht-buttons').innerHTML = '';
