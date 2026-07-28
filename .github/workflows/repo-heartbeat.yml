@@ -1,0 +1,43 @@
+# Hält das Repository "aktiv", damit GitHub den Keep-Alive-Workflow nicht abschaltet.
+#
+# GitHub deaktiviert geplante Workflows in öffentlichen Repos nach 60 Tagen ohne
+# Repo-Aktivität. Passiert das, läuft supabase-keepalive.yml nicht mehr und Supabase
+# pausiert sieben Tage später erneut – ohne Fehlermeldung, weil ein deaktivierter
+# Workflow gar nicht erst startet.
+#
+# Dieser Job schreibt daher zweimal im Monat einen Zeitstempel ins Repo.
+
+name: Repo Heartbeat
+
+on:
+  schedule:
+    - cron: '23 5 1,15 * *'   # am 1. und 15. um 05:23 UTC (nicht zur vollen Stunde)
+  workflow_dispatch:
+
+permissions:
+  contents: write              # GITHUB_TOKEN darf pushen
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Zeitstempel schreiben und pushen
+        run: |
+          # Liegt unter .github/, damit GitHub Pages die Datei nicht veröffentlicht.
+          date -u '+%Y-%m-%dT%H:%M:%SZ' > .github/last-heartbeat.txt
+
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          # Unverändert? Dann nichts tun, damit der Job nicht unnötig rot wird.
+          if git diff --quiet -- .github/last-heartbeat.txt; then
+            echo "Kein neuer Zeitstempel – nichts zu committen."
+            exit 0
+          fi
+
+          git add .github/last-heartbeat.txt
+          git commit -m "chore: repo-heartbeat $(date -u '+%Y-%m-%d')"
+          git push
+          echo "Heartbeat gesetzt."
