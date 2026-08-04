@@ -303,10 +303,12 @@
                   type="text"
                   id="stadt"
                   name="stadt"
-                  placeholder="Hamburg"
+                  value="Hamburg"
                   autocomplete="address-level2"
                   required
-                  class="w-full border border-gray-300 rounded-full px-5 py-3 text-sm bg-white transition-colors duration-150"
+                  readonly
+                  aria-readonly="true"
+                  class="w-full border border-gray-300 rounded-full px-5 py-3 text-sm bg-gray-50 text-gray-500 cursor-default transition-colors duration-150"
                 >
               </div>
             </div>
@@ -343,6 +345,22 @@
             <p class="text-sm font-medium" style="color:#b91c1c;">
               Diese Adresse konnte nicht gefunden werden. Bitte überprüfe Straße, Hausnummer und Postleitzahl.
             </p>
+          </div>
+
+          <div id="warn-hausnummer" class="hidden rounded-2xl p-4 mb-4 border" role="alert" style="background:rgba(184,134,42,0.06); border-color:rgba(184,134,42,0.3);">
+            <p class="text-sm font-medium mb-1" style="color:#8a6420;">
+              Wir konnten die Hausnummer <span id="warn-hausnummer-adresse" class="font-semibold"></span> nicht bestätigen.
+            </p>
+            <p class="text-sm text-gray-600 mb-3">
+              Bitte prüfe sie noch einmal. Wenn die Adresse stimmt, kannst du trotzdem bestellen.
+            </p>
+            <button
+              type="button"
+              id="confirm-address-btn"
+              class="text-xs font-sans font-medium tracking-wider uppercase px-5 py-2.5 rounded-full border border-honey text-honey hover:bg-honey hover:text-white transition-colors duration-150"
+            >
+              Adresse ist korrekt – trotzdem bestellen
+            </button>
           </div>
 
           <!-- Submit -->
@@ -495,7 +513,7 @@
       if (draft.strasse)    document.getElementById('strasse').value    = draft.strasse;
       if (draft.hausnummer) document.getElementById('hausnummer').value = draft.hausnummer;
       if (draft.plz)        document.getElementById('plz').value        = draft.plz;
-      if (draft.stadt)      document.getElementById('stadt').value      = draft.stadt;
+      document.getElementById('stadt').value = draft.stadt || 'Hamburg';
       if (draft.rabattProzent) {
         rabattProzent = draft.rabattProzent;
         document.getElementById('rabatt-code').value = draft.rabattCode || '';
@@ -503,6 +521,62 @@
         updateSummaryDisplay();
       }
     }
+
+    // Adressprüfung via OpenStreetMap Nominatim
+    // 'ok' = Hausnummer bestätigt · 'house-unverified' = Straße existiert, Hausnummer unbekannt
+    // 'not-found' = Straße existiert nicht · 'offline' = Dienst nicht erreichbar
+    const NOMINATIM = 'https://nominatim.openstreetmap.org/search?';
+    const normHnr = s => s.toLowerCase().replace(/[\s-]/g, '');
+    const sleep   = ms => new Promise(r => setTimeout(r, ms));
+
+    async function nominatim(params) {
+      const res = await fetch(NOMINATIM + new URLSearchParams(params), {
+        headers: { 'Accept-Language': 'de' }
+      });
+      if (!res.ok) throw new Error('Nominatim ' + res.status);
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    }
+
+    async function checkAddress(strasse, hausnummer, plz) {
+      const base = { format: 'jsonv2', addressdetails: '1', postalcode: plz, city: 'Hamburg', countrycodes: 'de' };
+      try {
+        const hits = await nominatim({ ...base, limit: '10', street: hausnummer + ' ' + strasse });
+
+        const exact = hits.some(r => {
+          const a = r.address || {};
+          return a.house_number
+            && normHnr(a.house_number) === normHnr(hausnummer)
+            && (!a.postcode || a.postcode === plz);
+        });
+        if (exact) return 'ok';
+        if (hits.length) return 'house-unverified';
+
+        // Nominatim erlaubt 1 Anfrage/Sekunde → vor der zweiten Abfrage warten
+        await sleep(1100);
+        const streetHits = await nominatim({ ...base, limit: '1', street: strasse });
+        return streetHits.length ? 'house-unverified' : 'not-found';
+      } catch (_) {
+        return 'offline';
+      }
+    }
+
+    // Bestätigte Adresse verfällt, sobald ein Adressfeld geändert wird
+    let addressConfirmed = false;
+    const warnHnr = document.getElementById('warn-hausnummer');
+
+    ['strasse', 'hausnummer', 'plz'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        addressConfirmed = false;
+        warnHnr.classList.add('hidden');
+      });
+    });
+
+    document.getElementById('confirm-address-btn').addEventListener('click', () => {
+      addressConfirmed = true;
+      warnHnr.classList.add('hidden');
+      document.getElementById('order-form').requestSubmit();
+    });
 
     // Form submission
     document.getElementById('order-form').addEventListener('submit', async function(e) {
@@ -524,6 +598,14 @@
       errHH.classList.add('hidden');
       errReq.classList.add('hidden');
       errAddr.classList.add('hidden');
+      warnHnr.classList.add('hidden');
+
+      // Button aus dem Prüf-Zustand zurückholen – in jedem Ausgang aufgerufen
+      const resetBtn = () => {
+        btn.disabled = false;
+        btnText.textContent = 'Kostenpflichtig bestellen';
+        if (btnArrow) btnArrow.style.display = '';
+      };
 
       const validPlz = ['22589','22587','22549','22547','22761','22765','22767','22769','22607','22605','22609','22559','20357'];
       const lieferungCheck = document.getElementById('lieferung-check');
@@ -556,40 +638,28 @@
         return;
       }
 
-      // Address validation via OpenStreetMap Nominatim
-      btn.disabled = true;
-      btnText.textContent = 'Adresse wird geprüft …';
-      if (btnArrow) btnArrow.style.display = 'none';
+      // Adressprüfung – übersprungen, wenn der Kunde die Adresse bereits bestätigt hat
+      if (!addressConfirmed) {
+        btn.disabled = true;
+        btnText.textContent = 'Adresse wird geprüft …';
+        if (btnArrow) btnArrow.style.display = 'none';
 
-      try {
-        const headers = {
-          'Accept-Language': 'de',
-          'User-Agent': 'HonigAusHochkamp/1.0 (wlankabel1259@gmail.com)'
-        };
-        const p1 = new URLSearchParams({ street: hausnummer + ' ' + strasse, postalcode: plz, country: 'de', format: 'json', limit: '1' });
-        const r1 = await fetch('https://nominatim.openstreetmap.org/search?' + p1, { headers });
-        const d1 = await r1.json();
+        const result = await checkAddress(strasse, hausnummer, plz);
+        resetBtn();
 
-        if (!d1 || d1.length === 0) {
-          const p2 = new URLSearchParams({ street: strasse, postalcode: plz, country: 'de', format: 'json', limit: '1' });
-          const r2 = await fetch('https://nominatim.openstreetmap.org/search?' + p2, { headers });
-          const d2 = await r2.json();
-          if (!d2 || d2.length === 0) {
-            errAddr.classList.remove('hidden');
-            document.getElementById('strasse').focus();
-            btn.disabled = false;
-            btnText.textContent = 'Kostenpflichtig bestellen';
-            if (btnArrow) btnArrow.style.display = '';
-            return;
-          }
+        if (result === 'not-found') {
+          errAddr.classList.remove('hidden');
+          document.getElementById('strasse').focus();
+          return;
         }
-      } catch (_) {
-        // API unreachable – allow proceeding
+        if (result === 'house-unverified') {
+          document.getElementById('warn-hausnummer-adresse').textContent = '„' + hausnummer + '" in der ' + strasse;
+          warnHnr.classList.remove('hidden');
+          document.getElementById('hausnummer').focus();
+          return;
+        }
+        // 'ok' und 'offline' → Bestellung geht weiter
       }
-
-      btn.disabled = false;
-      btnText.textContent = 'Kostenpflichtig bestellen';
-      if (btnArrow) btnArrow.style.display = '';
 
       sessionStorage.setItem('honig_order_draft', JSON.stringify({
         vorname, nachname, strasse, hausnummer, plz, stadt, groesse, tracht, preis, anzahl,
