@@ -60,7 +60,7 @@
   <!-- ─── Top Bar ─────────────────────────────────────────────── -->
   <header class="bg-forest text-white px-5 md:px-10 py-5 flex items-center justify-between">
     <div class="flex items-center gap-4">
-      <img src="brand-assets-photos/Logo neu.jpg" alt="Logo" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+      <img src="aktive-fotos-website/Logo neu.jpg" alt="Logo" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
       <div>
         <p class="text-xs tracking-[0.15em] uppercase opacity-60 font-sans">Honig aus Hochkamp</p>
         <p class="font-serif text-lg font-normal">Admin Dashboard</p>
@@ -1227,7 +1227,7 @@
       if (brandImageCache) { renderBrandImages(brandImageCache); return; }
       grid.innerHTML = '<p class="text-sm text-gray-400 col-span-4 text-center py-4">Wird geladen…</p>';
       try {
-        const res = await fetch('https://api.github.com/repos/KingJulian77/Honig/contents/brand-assets-photos');
+        const res = await fetch('https://api.github.com/repos/KingJulian77/Honig/contents/aktive-fotos-website');
         if (res.status === 403 || res.status === 429) {
           grid.innerHTML = '<p class="text-sm text-red-400 col-span-4 text-center py-4">GitHub Rate Limit erreicht – bitte in ~1 Minute erneut versuchen.</p>';
           return;
@@ -1248,7 +1248,7 @@
     function renderBrandImages(files) {
       const grid = document.getElementById('image-picker-grid');
       grid.innerHTML = files.map(f => {
-        const path   = 'brand-assets-photos/' + f.name;
+        const path   = 'aktive-fotos-website/' + f.name;
         const active = selectedImageUrl === path;
         const border = active ? 'border-honey' : 'border-gray-200 hover:border-honey';
         return `<button type="button" onclick="selectBrandImage('${path}', '${f.name}')"
