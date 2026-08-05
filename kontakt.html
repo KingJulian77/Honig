@@ -13,6 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="sb.js"></script>
+  <script src="cart.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -127,6 +128,10 @@
         <nav class="flex items-center justify-end gap-10">
           <a href="index.html#warum" class="text-ink text-[11px] font-medium tracking-[0.18em] uppercase hover:text-honey transition-colors duration-150">Warum Regional?</a>
           <a href="kontakt.html" class="text-honey text-[11px] font-medium tracking-[0.18em] uppercase">Kontakt</a>
+          <a href="warenkorb.html" class="relative text-ink hover:text-honey transition-colors duration-150" aria-label="Warenkorb">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2.6 12.4a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.2L21 7H5.2"/></svg>
+            <span data-cart-count aria-live="polite" class="hidden absolute -top-1.5 -right-2 bg-honey text-white rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center" style="font-size:10px;font-weight:600;line-height:1;">0</span>
+          </a>
         </nav>
       </div>
       <!-- Mobile nav -->
@@ -140,6 +145,10 @@
           <a href="index.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Start</a>
           <a href="unser-honig.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Honig</a>
           <a href="kontakt.html" class="text-honey text-[11px] font-medium tracking-[0.15em] uppercase">Kontakt</a>
+          <a href="warenkorb.html" class="relative text-ink hover:text-honey transition-colors duration-150" aria-label="Warenkorb">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2.6 12.4a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.2L21 7H5.2"/></svg>
+            <span data-cart-count aria-live="polite" class="hidden absolute -top-1.5 -right-2 bg-honey text-white rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center" style="font-size:10px;font-weight:600;line-height:1;">0</span>
+          </a>
         </nav>
       </div>
     </div>

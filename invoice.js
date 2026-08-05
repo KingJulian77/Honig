@@ -3,18 +3,51 @@
 (function (global) {
   'use strict';
 
+  // Normalisiert die Positionen einer Bestellung. Bestellungen ab dem Warenkorb
+  // bringen ein items-Array mit; ältere haben Größe und Menge im Text ("375g × 2").
+  function itemsOf(d) {
+    if (Array.isArray(d.items) && d.items.length) {
+      return d.items.map(function (i) {
+        return {
+          weight:    String(i.weight || ''),
+          tracht:    String(i.tracht || 'frühtracht'),
+          qty:       parseInt(i.qty, 10) || 1,
+          unitPrice: Number(i.unitPrice) || 0
+        };
+      });
+    }
+    return [{
+      weight:    String(d.groesse || ''),
+      tracht:    String(d.tracht || 'frühtracht'),
+      qty:       parseInt(d.qty, 10) || 1,
+      unitPrice: Number(d.unitPrice) || 0
+    }];
+  }
+
   // Baut das Invoice-Daten-Objekt aus einem gespeicherten orders-Datensatz (Admin-Seite).
   function invoiceDataFromOrder(o) {
-    const groesseRaw = String(o.groesse || '');
-    let qty = 1;
-    let baseSize = groesseRaw;
-    if (groesseRaw.includes('×')) {
-      const parts = groesseRaw.split('×');
-      baseSize = parts[0].trim();
-      qty = parseInt(parts[1], 10) || 1;
-    }
     const total = parseFloat(String(o.preis || '').replace(/[^0-9,.]/g, '').replace(',', '.')) || 0;
-    const unitPrice = qty > 0 ? total / qty : total;
+
+    let items;
+    if (Array.isArray(o.items) && o.items.length) {
+      items = itemsOf(o);
+    } else {
+      // Altbestellung: Menge steckt im Textfeld "groesse".
+      const groesseRaw = String(o.groesse || '');
+      let qty = 1;
+      let baseSize = groesseRaw;
+      if (groesseRaw.includes('×')) {
+        const parts = groesseRaw.split('×');
+        baseSize = parts[0].trim();
+        qty = parseInt(parts[1], 10) || 1;
+      }
+      items = [{
+        weight:    baseSize,
+        tracht:    o.tracht || 'frühtracht',
+        qty:       qty,
+        unitPrice: qty > 0 ? total / qty : total
+      }];
+    }
 
     return {
       orderId:    '#' + String(o.id).padStart(4, '0'),
@@ -25,10 +58,7 @@
       hausnummer: o.hausnummer || '',
       plz:        o.plz || '',
       stadt:      o.stadt || '',
-      groesse:    baseSize,
-      tracht:     o.tracht || 'frühtracht',
-      qty:        qty,
-      unitPrice:  unitPrice,
+      items:      items,
       total:      total,
       isPaid:     false,
     };
@@ -109,15 +139,19 @@
     doc.text('Einzelpreis', 155, y);
     doc.text('Gesamt', colR - 2, y, { align: 'right' });
 
-    // Table row
+    // Table rows – eine Zeile je Position
+    const items = itemsOf(d);
     y += 10;
-    const trachtLabel = d.tracht.charAt(0).toUpperCase() + d.tracht.slice(1);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...ink);
-    doc.text('Honig aus Hochkamp – ' + d.groesse + ' (' + trachtLabel + ')', margin + 2, y);
-    doc.text(String(d.qty), 130, y);
-    doc.text(d.unitPrice.toFixed(2).replace('.', ',') + ' €', 155, y);
-    doc.text(d.total.toFixed(2).replace('.', ',') + ' €', colR - 2, y, { align: 'right' });
+    items.forEach(function (item, idx) {
+      if (idx > 0) y += 7;
+      const trachtLabel = item.tracht.charAt(0).toUpperCase() + item.tracht.slice(1);
+      doc.text('Honig aus Hochkamp – ' + item.weight + ' (' + trachtLabel + ')', margin + 2, y);
+      doc.text(String(item.qty), 130, y);
+      doc.text(item.unitPrice.toFixed(2).replace('.', ',') + ' €', 155, y);
+      doc.text((item.qty * item.unitPrice).toFixed(2).replace('.', ',') + ' €', colR - 2, y, { align: 'right' });
+    });
 
     // Total line
     y += 10;

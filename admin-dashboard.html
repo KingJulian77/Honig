@@ -549,7 +549,7 @@
             })
               .bindPopup(
                 `<strong>${o.vorname} ${o.nachname}</strong><br>${o.strasse} ${o.hausnummer}<br>${o.plz} ${o.stadt}<br>`
-                + `<span style="color:#B8862A;">${o.groesse} · ${o.preis}</span><br>`
+                + `<span style="color:#B8862A;">${orderItemsText(o)} · ${o.preis}</span><br>`
                 + `<em>${statusLabels[o.status] || o.status}</em>`
               )
               .addTo(mapMarkerLayer);
@@ -771,6 +771,50 @@
       return map[s] || s;
     }
 
+    // ── Bestellpositionen ────────────────────────────────────────────
+    // Bestellungen ab dem Warenkorb bringen ein items-Array mit. Ältere haben
+    // nur die Textfelder groesse/tracht – die bleiben der Rückfall.
+
+    function trachtLabel(t) {
+      const s = String(t || '').trim();
+      return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+    }
+
+    function orderLines(o) {
+      if (Array.isArray(o.items) && o.items.length) {
+        return o.items.map(i => ({
+          artikel: String(i.weight || '') + ' × ' + (parseInt(i.qty, 10) || 1),
+          tracht:  trachtLabel(i.tracht)
+        }));
+      }
+      return [{ artikel: String(o.groesse || ''), tracht: trachtLabel(o.tracht) }];
+    }
+
+    // Einzeiler, z. B. für die Kartenpopups
+    function orderItemsText(o) {
+      return orderLines(o)
+        .map(l => l.tracht ? l.artikel + ' (' + l.tracht + ')' : l.artikel)
+        .join(', ');
+    }
+
+    // Mehrzeilig für Tabelle und Karten; faded = Archiv-Darstellung
+    function orderItemsHtml(o, faded) {
+      return orderLines(o).map(l =>
+        l.artikel + (l.tracht
+          ? `<br><span style="font-size:11px;color:#9CA3AF;${faded ? 'opacity:0.75;' : ''}">${l.tracht}</span>`
+          : '')
+      ).join('<br>');
+    }
+
+    // Anzahl Gläser – ohne items steckt die Menge im Text ("375g × 2").
+    function countJars(o) {
+      if (Array.isArray(o.items) && o.items.length) {
+        return o.items.reduce((sum, i) => sum + (parseInt(i.qty, 10) || 0), 0);
+      }
+      const m = String(o.groesse || '').match(/[×x]\s*(\d+)/i);
+      return m ? parseInt(m[1]) : 1;
+    }
+
     const COL = '100px 90px 130px 1fr 80px 90px 120px 170px';
 
     function orderNum(id) {
@@ -823,7 +867,7 @@
             ${o.email ? `<p style="font-size:11px;color:#9CA3AF;margin-top:2px;word-break:break-all;">${o.email}</p>` : ''}
           </div>
           <span class="text-ink">${o.strasse} ${o.hausnummer}, ${o.plz} ${o.stadt}</span>
-          <span class="text-ink">${o.groesse}${o.tracht ? `<br><span style="font-size:11px;color:#9CA3AF;">${o.tracht === 'frühtracht' ? 'Frühtracht' : 'Sommertracht'}</span>` : ''}</span>
+          <span class="text-ink">${orderItemsHtml(o)}</span>
           <div>
             <span class="font-medium text-ink">${o.preis}</span>
             ${o.rabatt_code ? `<p style="margin-top:3px;"><span style="font-size:10px;background:rgba(234,179,8,0.15);color:#92400e;padding:2px 8px;border-radius:999px;font-weight:500;letter-spacing:0.03em;">Rabatt: ${o.rabatt_code}</span></p>` : ''}
@@ -857,7 +901,7 @@
             <span class="status-badge status-${o.status}">${statusLabel(o.status)}</span>
           </div>
           <p class="text-gray-500 text-xs mb-1">${o.strasse} ${o.hausnummer}, ${o.plz} ${o.stadt}</p>
-          <p class="text-gray-500 text-xs mb-3">${o.groesse}${o.tracht ? ' · ' + (o.tracht === 'frühtracht' ? 'Frühtracht' : 'Sommertracht') : ''} · <strong class="text-ink">${o.preis}</strong>${o.rabatt_code ? ` <span style="font-size:10px;background:rgba(234,179,8,0.15);color:#92400e;padding:1px 7px;border-radius:999px;font-weight:500;">Rabatt: ${o.rabatt_code}</span>` : ''}</p>
+          <p class="text-gray-500 text-xs mb-3">${orderItemsText(o)} · <strong class="text-ink">${o.preis}</strong>${o.rabatt_code ? ` <span style="font-size:10px;background:rgba(234,179,8,0.15);color:#92400e;padding:1px 7px;border-radius:999px;font-weight:500;">Rabatt: ${o.rabatt_code}</span>` : ''}</p>
           <div class="flex items-center gap-2">
             <select onchange="handleStatusChange(${o.id}, this)"
               style="font-family:'DM Sans',sans-serif;font-size:12px;border:1px solid #E5E7EB;border-radius:999px;padding:5px 10px;background:white;color:#1A1A1A;cursor:pointer;outline:none;flex:1;">
@@ -899,7 +943,7 @@
             ${o.email ? `<p style="font-size:11px;color:#9CA3AF;margin-top:2px;word-break:break-all;">${o.email}</p>` : ''}
           </div>
           <span class="text-gray-400">${o.strasse} ${o.hausnummer}, ${o.plz} ${o.stadt}</span>
-          <span class="text-gray-400">${o.groesse}${o.tracht ? `<br><span style="font-size:11px;color:#9CA3AF;opacity:0.75;">${o.tracht === 'frühtracht' ? 'Frühtracht' : 'Sommertracht'}</span>` : ''}</span>
+          <span class="text-gray-400">${orderItemsHtml(o, true)}</span>
           <div>
             <span class="text-gray-400">${o.preis}</span>
             ${o.rabatt_code ? `<p style="margin-top:3px;"><span style="font-size:10px;background:rgba(234,179,8,0.10);color:#92400e;opacity:0.75;padding:2px 8px;border-radius:999px;font-weight:500;letter-spacing:0.03em;">Rabatt: ${o.rabatt_code}</span></p>` : ''}
@@ -931,7 +975,7 @@
             <span class="status-badge" style="background:#F3F4F6;color:#9CA3AF;">Archiviert</span>
           </div>
           <p class="text-gray-400 text-xs mb-1">${o.strasse} ${o.hausnummer}, ${o.plz} ${o.stadt}</p>
-          <p class="text-gray-400 text-xs mb-3">${o.groesse}${o.tracht ? ' · ' + (o.tracht === 'frühtracht' ? 'Frühtracht' : 'Sommertracht') : ''} · ${o.preis}${o.rabatt_code ? ` <span style="font-size:10px;background:rgba(234,179,8,0.10);color:#92400e;opacity:0.75;padding:1px 7px;border-radius:999px;font-weight:500;">Rabatt: ${o.rabatt_code}</span>` : ''}</p>
+          <p class="text-gray-400 text-xs mb-3">${orderItemsText(o)} · ${o.preis}${o.rabatt_code ? ` <span style="font-size:10px;background:rgba(234,179,8,0.10);color:#92400e;opacity:0.75;padding:1px 7px;border-radius:999px;font-weight:500;">Rabatt: ${o.rabatt_code}</span>` : ''}</p>
           <div class="flex items-center gap-2">
             <button onclick="unarchiveOrder(${o.id})"
               style="font-family:'DM Sans',sans-serif;font-size:12px;border:1px solid #E5E7EB;border-radius:999px;padding:5px 10px;background:white;color:#374151;cursor:pointer;flex:1;">
@@ -1303,10 +1347,6 @@
       function parsePrice(preis) {
         return parseFloat((preis || '0').replace(/[^0-9,.]/g, '').replace(',', '.')) || 0;
       }
-      function parseJars(groesse) {
-        const m = (groesse || '').match(/[×x]\s*(\d+)/i);
-        return m ? parseInt(m[1]) : 1;
-      }
       function fmtPrice(n) {
         return n.toFixed(2).replace('.', ',') + ' €';
       }
@@ -1326,7 +1366,7 @@
 
       filtered.forEach(o => {
         revenue += parsePrice(o.preis);
-        jars    += parseJars(o.groesse);
+        jars    += countJars(o);
         if (o.plz) plzCounts[o.plz] = (plzCounts[o.plz] || 0) + 1;
       });
 

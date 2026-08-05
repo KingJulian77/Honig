@@ -12,6 +12,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="sb.js"></script>
+  <script src="cart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script>emailjs.init('krQRCnNy9nv3DaLM7');</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -124,6 +125,10 @@
         <nav class="flex items-center justify-end gap-10">
           <a href="index.html#warum" class="text-ink text-[11px] font-medium tracking-[0.18em] uppercase hover:text-honey transition-colors duration-150">Warum Regional?</a>
           <a href="kontakt.html" class="text-ink text-[11px] font-medium tracking-[0.18em] uppercase hover:text-honey transition-colors duration-150">Kontakt</a>
+          <a href="warenkorb.html" class="relative text-ink hover:text-honey transition-colors duration-150" aria-label="Warenkorb">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2.6 12.4a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.2L21 7H5.2"/></svg>
+            <span data-cart-count aria-live="polite" class="hidden absolute -top-1.5 -right-2 bg-honey text-white rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center" style="font-size:10px;font-weight:600;line-height:1;">0</span>
+          </a>
         </nav>
       </div>
       <!-- Mobile nav -->
@@ -137,6 +142,10 @@
           <a href="index.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Start</a>
           <a href="unser-honig.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Honig</a>
           <a href="kontakt.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Kontakt</a>
+          <a href="warenkorb.html" class="relative text-ink hover:text-honey transition-colors duration-150" aria-label="Warenkorb">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2.6 12.4a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.2L21 7H5.2"/></svg>
+            <span data-cart-count aria-live="polite" class="hidden absolute -top-1.5 -right-2 bg-honey text-white rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center" style="font-size:10px;font-weight:600;line-height:1;">0</span>
+          </a>
         </nav>
       </div>
     </div>
@@ -183,16 +192,18 @@
           </a>
         </div>
 
-        <input type="hidden" id="qty" value="1">
-
         <!-- Price summary -->
-        <p class="text-sm text-ink mb-3 mt-3">
-          <span id="qty-label">1 Glas</span>
-          &times;
-          <span id="unit-price">—</span>
-          =
-          <strong id="total-price">—</strong>
-        </p>
+        <div class="bg-white border border-gray-200 rounded-2xl p-5 mb-3 shadow-[0_2px_12px_rgba(26,26,26,0.05)]">
+          <div class="flex items-center justify-between mb-4">
+            <p class="text-[11px] text-honey tracking-[0.15em] uppercase font-sans">Deine Bestellung</p>
+            <a href="warenkorb.html" class="text-honey text-xs hover:opacity-75 active:opacity-60 transition-opacity duration-150">Warenkorb ändern</a>
+          </div>
+          <div id="order-items" class="flex flex-col gap-3"></div>
+          <div class="border-t border-gray-200 mt-4 pt-4 flex items-baseline justify-between">
+            <span class="text-sm text-gray-500">Gesamt</span>
+            <strong class="font-serif text-2xl text-ink font-normal" id="total-price">—</strong>
+          </div>
+        </div>
 
         <!-- Discount info -->
         <div id="rabatt-line" class="hidden rounded-xl px-4 py-3 mb-3 text-sm" style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);">
@@ -344,13 +355,11 @@
         (draft.vorname ? draft.vorname + ' ' + draft.nachname + ' – ' : '') +
         draft.strasse + ' ' + draft.hausnummer + ', ' + draft.plz + ' ' + draft.stadt;
 
-      // "Daten ändern" restores product params in URL
-      document.getElementById('change-data-link').href =
-        'bestellen.html?groesse=' + encodeURIComponent(draft.groesse) + '&preis=' + encodeURIComponent(draft.preis);
+      // "Daten ändern" – die Positionen stehen im Warenkorb, es braucht keine URL-Parameter mehr
+      document.getElementById('change-data-link').href = 'bestellen.html';
 
-      const baseUnitPrice = parseFloat(draft.preis.replace(/[^0-9,.]/g, '').replace(',', '.')) || 0;
       const rabattProzent = draft.rabattProzent || 0;
-      const unitPriceNum  = baseUnitPrice * (1 - rabattProzent / 100);
+      const rabattFaktor  = 1 - rabattProzent / 100;
 
       if (rabattProzent > 0) {
         const rabattLine = document.getElementById('rabatt-line');
@@ -360,51 +369,195 @@
         }
       }
 
-      const trachtRaw = draft.tracht || 'frühtracht';
-      const qtyInput = document.getElementById('qty');
-      let   stockNow = 0;
-
-      function ensureEuro(p) { return (p && !String(p).includes('€')) ? String(p).trim() + ' €' : String(p || ''); }
-      function formatPrice(num) {
-        return num.toFixed(2).replace('.', ',') + ' €';
+      function parsePrice(p) { return parseFloat(String(p || '').replace(/[^0-9,.]/g, '').replace(',', '.')) || 0; }
+      function formatPrice(num) { return (Number(num) || 0).toFixed(2).replace('.', ',') + ' €'; }
+      function orderNum(id) { return id ? '#' + String(id).padStart(4, '0') : ''; }
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c =>
+          ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
       }
 
-      function orderNum(id) {
-        return id ? '#' + String(id).padStart(4, '0') : '';
+      // Bestellpositionen. Drafts von vor dem Warenkorb kennen kein items-Feld –
+      // dann wird aus den Einzelfeldern eine Position gebaut.
+      const items = (Array.isArray(draft.items) && draft.items.length)
+        ? draft.items.map(i => ({
+            weight:    String(i.weight || ''),
+            tracht:    String(i.tracht || 'Frühtracht'),
+            qty:       Math.max(1, parseInt(i.qty, 10) || 1),
+            unitPrice: Number(i.unitPrice) || 0
+          }))
+        : [{
+            weight:    String(draft.groesse || ''),
+            tracht:    String(draft.tracht || 'Frühtracht'),
+            qty:       Math.max(1, parseInt(draft.anzahl, 10) || 1),
+            unitPrice: parsePrice(draft.preis)
+          }];
+
+      // Varianten werden in der Datenbank mit unterschiedlicher Groß-/Kleinschreibung
+      // geführt ('frühtracht' vs. 'Frühtracht') – deshalb normalisiert vergleichen.
+      function keyOf(o) {
+        return String(o.weight || '').trim().toLowerCase() + '|' + String(o.tracht || '').trim().toLowerCase();
+      }
+
+      function lineUnit(i) { return i.unitPrice * rabattFaktor; }
+      function cartTotal() { return items.reduce((sum, i) => sum + i.qty * lineUnit(i), 0); }
+
+      function renderItems() {
+        document.getElementById('order-items').innerHTML = items.map(i => `
+          <div class="flex justify-between items-baseline gap-4">
+            <div style="min-width:0;">
+              <p class="text-ink text-sm">${escapeHtml(i.weight)} · ${escapeHtml(i.tracht)}</p>
+              <p class="text-gray-400 text-xs mt-0.5">${i.qty} × ${escapeHtml(formatPrice(lineUnit(i)))}</p>
+            </div>
+            <span class="text-ink text-sm whitespace-nowrap">${escapeHtml(formatPrice(i.qty * lineUnit(i)))}</span>
+          </div>`).join('');
+
+        document.getElementById('total-price').textContent = formatPrice(cartTotal());
+      }
+
+      // Sperrt den Bezahl-Button, damit keine Bestellung ausgelöst werden kann.
+      function blockPayment(label) {
+        const payBtn  = document.getElementById('pay-btn');
+        const payText = document.getElementById('pay-btn-text');
+        if (payText) payText.textContent = label || 'Aktuell ausverkauft';
+        if (payBtn) {
+          payBtn.disabled      = true;
+          payBtn.style.opacity = '0.45';
+          payBtn.style.cursor  = 'not-allowed';
+        }
+      }
+
+      // Holt alle betroffenen Varianten in einer Abfrage.
+      // { ok:false } heißt "Datenbank nicht erreichbar" und darf nie als
+      // "ausverkauft" durchgehen, ohne die Bestellung zu sperren.
+      async function fetchVariants() {
+        const weights = [...new Set(items.map(i => i.weight))];
+        const { data, error } = await sb.from('variants')
+          .select('id, weight, tracht, quantity')
+          .in('weight', weights);
+
+        if (error) return { ok: false };
+
+        const map = {};
+        (data || []).forEach(v => { map[keyOf(v)] = v; });
+        return { ok: true, map };
+      }
+
+      // Hält den Warenkorb mit den hier angepassten Mengen im Gleichklang,
+      // damit das Header-Badge nicht mehr Gläser anzeigt als bestellt werden.
+      function syncCart() {
+        HonigCart.replaceAll(items.map(i => ({
+          weight: i.weight,
+          tracht: i.tracht,
+          qty:    i.qty,
+          price:  formatPrice(i.unitPrice)
+        })));
+      }
+
+      async function loadStock() {
+        const res = await fetchVariants();
+
+        if (!res.ok) {
+          blockPayment();
+          showToast('Verbindung zum Shop fehlgeschlagen. Bitte lade die Seite neu.');
+          renderItems();
+          return;
+        }
+
+        const gone    = [];
+        const capped  = [];
+
+        items.forEach(i => {
+          const v     = res.map[keyOf(i)];
+          const avail = v ? v.quantity : 0;
+          if (avail <= 0) { i.qty = 0; gone.push(i.weight + ' ' + i.tracht); }
+          else if (i.qty > avail) { i.qty = avail; capped.push(i.weight + ' ' + i.tracht); }
+        });
+
+        // Ausverkaufte Positionen entfernen, den Rest darf der Kunde bestellen.
+        const remaining = items.filter(i => i.qty > 0);
+        items.length = 0;
+        items.push(...remaining);
+
+        if (gone.length || capped.length) {
+          syncCart();
+          if (gone.length)   showToast('Nicht mehr verfügbar und entfernt: ' + gone.join(', ') + '.');
+          else if (capped.length) showToast('Menge angepasst: ' + capped.join(', ') + '.');
+        }
+
+        if (items.length === 0) blockPayment();
+        renderItems();
+      }
+
+      // Setzt die Bestände zurück, die in diesem Anlauf schon abgezogen wurden.
+      async function rollback(applied) {
+        for (const a of applied) {
+          await sb.from('variants').update({ quantity: a.before }).eq('id', a.id);
+        }
       }
 
       async function createOrder() {
-        const { data: fresh, error: freshErr } = await sb.from('variants')
-          .select('id, quantity')
-          .eq('weight', draft.groesse)
-          .ilike('tracht', trachtRaw)
-          .single();
+        const payBtn  = document.getElementById('pay-btn');
+        const payText = document.getElementById('pay-btn-text');
 
-        // PGRST116 = kein Treffer (Variante existiert nicht) – alles andere ist ein
-        // Verbindungsproblem und darf nicht als "ausverkauft" durchgehen.
-        if (freshErr && freshErr.code !== 'PGRST116') {
+        if (items.length === 0) {
+          showToast('Dein Warenkorb ist leer.');
+          return;
+        }
+
+        // Doppelklick würde sonst zwei Bestellungen und doppelten Bestandsabzug auslösen.
+        payBtn.disabled = true;
+        payText.textContent = 'Wird gesendet …';
+        const resetBtn = () => {
+          payBtn.disabled = false;
+          payText.textContent = 'Per PayPal überweisen';
+        };
+
+        const res = await fetchVariants();
+        if (!res.ok) {
+          resetBtn();
           showToast('Bestellung konnte nicht gesendet werden. Bitte versuche es in Kürze erneut.');
           return;
         }
 
-        const available = fresh ? fresh.quantity : 0;
-        const qty       = Math.min(available, Math.max(1, parseInt(qtyInput.value) || 1));
-
-        if (available === 0 || qty === 0) {
-          showToast('Leider ist dieser Honig nicht mehr verfügbar.');
-          return;
+        // 1) Erst alles prüfen – es wird nichts gebucht, solange eine Position klemmt.
+        for (const i of items) {
+          const v = res.map[keyOf(i)];
+          if (!v || v.quantity < i.qty) {
+            resetBtn();
+            showToast('Leider ist ' + i.weight + ' ' + i.tracht + ' nicht mehr in dieser Menge verfügbar.');
+            await loadStock();
+            return;
+          }
         }
 
-        const total = qty * unitPriceNum;
+        // 2) Bestände abziehen und merken, was schon gebucht wurde.
+        const applied = [];
+        for (const i of items) {
+          const v      = res.map[keyOf(i)];
+          const before = v.quantity;   // vor dem Update festhalten – sonst kippt der Rollback-Wert
 
-        const { error: stockErr } = await sb.from('variants')
-          .update({ quantity: available - qty })
-          .eq('id', fresh.id);
+          const { error: stockErr } = await sb.from('variants')
+            .update({ quantity: before - i.qty })
+            .eq('id', v.id);
 
-        if (stockErr) {
-          showToast('Fehler beim Aktualisieren des Bestands. Bitte versuche es erneut.');
-          return;
+          if (stockErr) {
+            await rollback(applied);
+            resetBtn();
+            showToast('Fehler beim Aktualisieren des Bestands. Bitte versuche es erneut.');
+            return;
+          }
+          applied.push({ id: v.id, before: before });
         }
+
+        // 3) Eine Bestellung mit allen Positionen speichern.
+        const total       = cartTotal();
+        const orderItems  = items.map(i => ({
+          weight:    i.weight,
+          tracht:    i.tracht,
+          qty:       i.qty,
+          unitPrice: Number(lineUnit(i).toFixed(2))
+        }));
 
         const { data: orderData, error: orderErr } = await sb.from('orders').insert({
           datum:       new Date().toLocaleDateString('de-DE'),
@@ -414,16 +567,19 @@
           hausnummer:  draft.hausnummer,
           plz:         draft.plz,
           stadt:       draft.stadt,
-          groesse:     qty > 1 ? draft.groesse + ' × ' + qty : draft.groesse,
-          tracht:      draft.tracht || 'frühtracht',
+          // Lesbare Zusammenfassung für Ansichten, die nur diese Felder kennen.
+          groesse:     orderItems.map(i => i.weight + ' × ' + i.qty).join(', '),
+          tracht:      [...new Set(orderItems.map(i => i.tracht))].join(', '),
           preis:       formatPrice(total),
+          items:       orderItems,
           status:      'ausstehend',
           archived:    false,
           rabatt_code: draft.rabattCode || ''
         }).select('id').single();
 
         if (orderErr) {
-          await sb.from('variants').update({ quantity: available }).eq('id', fresh.id);
+          await rollback(applied);
+          resetBtn();
           showToast('Fehler beim Speichern der Bestellung. Bitte versuche es erneut.');
           return;
         }
@@ -440,14 +596,13 @@
           hausnummer: draft.hausnummer,
           plz:        draft.plz,
           stadt:      draft.stadt,
-          groesse:    draft.groesse,
-          tracht:     draft.tracht || 'frühtracht',
-          qty:        qty,
-          unitPrice:  unitPriceNum,
+          items:      orderItems,
           total:      total,
           isPaid:     false,
         };
+
         sessionStorage.removeItem('honig_order_draft');
+        HonigCart.clear();
 
         document.getElementById('manual-total').textContent = formatPrice(total);
         document.getElementById('checkout-content').classList.add('hidden');
@@ -456,52 +611,8 @@
 
       window.finalizeManualOrder = async function() { await createOrder(); };
 
-      function updatePrice() {
-        const raw = parseInt(qtyInput.value) || 1;
-        const qty = Math.min(stockNow > 0 ? stockNow : 1, Math.max(1, raw));
-        if (raw > qty) qtyInput.value = qty;
-        const total = qty * unitPriceNum;
-        document.getElementById('qty-label').textContent    = qty + (qty === 1 ? ' Glas' : ' Gläser');
-        document.getElementById('unit-price').textContent   = ensureEuro(draft.preis);
-        document.getElementById('total-price').textContent  = formatPrice(total);
-      }
-
-      // Sperrt den Bezahl-Button, damit keine Bestellung ausgelöst werden kann.
-      function blockPayment() {
-        const payBtn  = document.getElementById('pay-btn');
-        const payText = document.getElementById('pay-btn-text');
-        if (payText) payText.textContent = 'Aktuell ausverkauft';
-        if (payBtn) {
-          payBtn.disabled        = true;
-          payBtn.style.opacity   = '0.45';
-          payBtn.style.cursor    = 'not-allowed';
-        }
-      }
-
-      async function loadStock() {
-        const { data, error } = await sb.from('variants').select('quantity').eq('weight', draft.groesse).ilike('tracht', trachtRaw).single();
-
-        // PGRST116 = kein Treffer; jeder andere Fehler heißt "Datenbank nicht erreichbar".
-        if (error && error.code !== 'PGRST116') {
-          // Bestand unbekannt -> wie ausverkauft behandeln und Bestellung sperren.
-          stockNow = 0;
-          blockPayment();
-          showToast('Verbindung zum Shop fehlgeschlagen. Bitte lade die Seite neu.');
-          updatePrice();
-          return;
-        }
-
-        stockNow = data ? data.quantity : 0;
-        if (stockNow === 0) blockPayment();
-        qtyInput.max   = stockNow > 0 ? stockNow : 1;
-        qtyInput.value = Math.min(stockNow > 0 ? stockNow : 1, Math.max(1, draft.anzahl || 1));
-        if (stockNow > 0 && (draft.anzahl || 1) > stockNow) {
-          showToast('Nur noch ' + stockNow + ' Glas' + (stockNow > 1 ? 'er' : '') + ' verfügbar – Menge wurde angepasst.');
-        }
-        updatePrice();
-      }
-
-      // Bestand laden und Preisübersicht aktualisieren
+      // Positionen anzeigen und gegen den echten Bestand abgleichen
+      renderItems();
       loadStock();
     }
 

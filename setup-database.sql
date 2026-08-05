@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS orders (
   groesse     TEXT NOT NULL,
   tracht      TEXT NOT NULL DEFAULT 'frühtracht',
   preis       TEXT NOT NULL,
+  items       JSONB,
   rabatt_code TEXT DEFAULT '',
   status      TEXT NOT NULL DEFAULT 'ausstehend',
   archived    BOOLEAN NOT NULL DEFAULT false,
@@ -57,6 +58,7 @@ CREATE TABLE IF NOT EXISTS variants (
 ALTER TABLE orders      ADD COLUMN IF NOT EXISTS email       TEXT;
 ALTER TABLE orders      ADD COLUMN IF NOT EXISTS tracht      TEXT DEFAULT 'frühtracht';
 ALTER TABLE orders      ADD COLUMN IF NOT EXISTS rabatt_code TEXT DEFAULT '';
+ALTER TABLE orders      ADD COLUMN IF NOT EXISTS items       JSONB;
 ALTER TABLE variants    ADD COLUMN IF NOT EXISTS image_url   TEXT;
 ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS confirmed        BOOLEAN     DEFAULT false;
 ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS token            TEXT UNIQUE;

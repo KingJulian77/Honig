@@ -12,6 +12,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="sb.js"></script>
+  <script src="cart.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -137,6 +138,10 @@
         <nav class="flex items-center justify-end gap-10">
           <a href="index.html#warum" class="text-ink text-[11px] font-medium tracking-[0.18em] uppercase hover:text-honey transition-colors duration-150">Warum Regional?</a>
           <a href="kontakt.html" class="text-ink text-[11px] font-medium tracking-[0.18em] uppercase hover:text-honey transition-colors duration-150">Kontakt</a>
+          <a href="warenkorb.html" class="relative text-ink hover:text-honey transition-colors duration-150" aria-label="Warenkorb">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2.6 12.4a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.2L21 7H5.2"/></svg>
+            <span data-cart-count aria-live="polite" class="hidden absolute -top-1.5 -right-2 bg-honey text-white rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center" style="font-size:10px;font-weight:600;line-height:1;">0</span>
+          </a>
         </nav>
       </div>
       <!-- Mobile nav -->
@@ -150,6 +155,10 @@
           <a href="index.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Start</a>
           <a href="unser-honig.html" class="text-honey text-[11px] font-medium tracking-[0.15em] uppercase">Honig</a>
           <a href="kontakt.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Kontakt</a>
+          <a href="warenkorb.html" class="relative text-ink hover:text-honey transition-colors duration-150" aria-label="Warenkorb">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2.6 12.4a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.2L21 7H5.2"/></svg>
+            <span data-cart-count aria-live="polite" class="hidden absolute -top-1.5 -right-2 bg-honey text-white rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center" style="font-size:10px;font-weight:600;line-height:1;">0</span>
+          </a>
         </nav>
       </div>
     </div>
@@ -247,15 +256,26 @@
           </div>
 
           <!-- CTA -->
-          <a
+          <button
             id="bestell-btn"
-            href="bestellen.html?groesse=160g&preis=7%2C00+%E2%82%AC"
-            class="flex items-center justify-center gap-2 bg-honey text-white text-sm font-sans font-medium px-9 py-4 rounded-full hover:opacity-90 active:opacity-80 transition-opacity duration-150 w-full mb-4"
+            type="button"
+            onclick="addToCartAndCheckout()"
+            class="flex items-center justify-center gap-2 bg-honey text-white text-sm font-sans font-medium px-9 py-4 rounded-full hover:opacity-90 active:opacity-80 transition-opacity duration-150 w-full mb-3"
             style="letter-spacing:0.01em;"
           >
             <span id="bestell-btn-text">Jetzt bestellen</span>
             <svg id="bestell-btn-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </a>
+          </button>
+          <button
+            id="cart-btn"
+            type="button"
+            onclick="addToCart()"
+            class="flex items-center justify-center gap-2 bg-honey text-white text-sm font-sans font-medium px-9 py-4 rounded-full hover:opacity-90 active:opacity-80 transition-opacity duration-150 w-full mb-4"
+            style="letter-spacing:0.01em;"
+          >
+            <span id="cart-btn-text">Zum Warenkorb hinzufügen</span>
+            <svg id="cart-btn-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2.6 12.4a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.2L21 7H5.2"/></svg>
+          </button>
           <p class="text-center text-gray-400 text-xs">Lieferung nach Hochkamp und Umgebung</p>
 
           <!-- Stock Notification Form (shown when sold out) -->
@@ -535,6 +555,8 @@
       const bestellBtn   = document.getElementById('bestell-btn');
       const bestellText  = document.getElementById('bestell-btn-text');
       const bestellArrow = document.getElementById('bestell-btn-arrow');
+      const cartBtn      = document.getElementById('cart-btn');
+      const cartIcon     = document.getElementById('cart-btn-icon');
       const stockTxt     = document.getElementById('stock-text');
       const stockBar     = document.getElementById('stock-bar');
       const notifyForm   = document.getElementById('stock-notify-form');
@@ -545,15 +567,75 @@
       stockBar.setAttribute('aria-valuenow', '0');
       bestellText.textContent        = 'Aktuell ausverkauft';
       if (bestellArrow) bestellArrow.style.display = 'none';
-      bestellBtn.style.pointerEvents = 'none';
       bestellBtn.style.opacity       = '0.45';
+      bestellBtn.disabled            = true;
 
-      // pointer-events allein reicht nicht: ein <a href> bleibt per Tab + Enter
-      // erreichbar. Ohne href ist der Link kein Ziel mehr für die Tastatur.
-      bestellBtn.removeAttribute('href');
-      bestellBtn.setAttribute('aria-disabled', 'true');
+      // Beide Bestellwege müssen gesperrt sein, sonst landet die ausverkaufte
+      // Variante über den Warenkorb doch noch im Checkout.
+      if (cartBtn) {
+        document.getElementById('cart-btn-text').textContent = 'Aktuell ausverkauft';
+        if (cartIcon) cartIcon.style.display = 'none';
+        cartBtn.style.opacity = '0.45';
+        cartBtn.disabled      = true;
+      }
 
       if (notifyForm) notifyForm.classList[offline ? 'add' : 'remove']('hidden');
+    }
+
+    // Liest die aktuelle Auswahl (Größe, Sorte, Menge) und begrenzt sie auf das,
+    // was noch verfügbar ist – abzüglich der Menge, die schon im Warenkorb liegt.
+    // Gibt null zurück, wenn nichts hinzugefügt werden kann.
+    function currentSelection() {
+      const btn       = document.querySelector('.variant-btn.active');
+      const trachtBtn = document.querySelector('.tracht-btn.active');
+      if (!btn || !trachtBtn) return null;
+
+      const weight  = ensureG(btn.dataset.weight);
+      const tracht  = trachtBtn.dataset.tracht;
+      const variant = variantMap[btn.dataset.weight + '-' + tracht] || {};
+      const stock   = variant.quantity ?? 0;
+
+      if (stock === 0) {
+        showToast('Diese Sorte ist aktuell ausverkauft.');
+        return null;
+      }
+
+      const key      = HonigCart.keyOf({ weight, tracht });
+      const inCart   = HonigCart.getItems()
+        .filter(i => HonigCart.keyOf(i) === key)
+        .reduce((sum, i) => sum + i.qty, 0);
+      const wanted   = Math.max(1, parseInt(document.getElementById('qty-select').value) || 1);
+      const possible = Math.max(0, stock - inCart);
+
+      if (possible === 0) {
+        showToast('Du hast bereits alle ' + stock + ' verfügbaren Gläser im Warenkorb.');
+        return null;
+      }
+      return {
+        weight:   weight,
+        tracht:   tracht,
+        qty:      Math.min(wanted, possible),
+        price:    ensureEuro(variant.price || ''),
+        image:    variant.image_url || document.getElementById('product-image').src,
+        // Menge musste gekürzt werden – der Hinweis gehört in denselben Toast,
+        // sonst überschreibt ihn die Erfolgsmeldung sofort wieder.
+        adjusted: wanted > possible
+      };
+    }
+
+    function addToCart() {
+      const item = currentSelection();
+      if (!item) return false;
+      HonigCart.addItem(item);
+      const zugelegt = item.qty + '× ' + item.weight + ' ' + item.tracht + ' im Warenkorb.';
+      showToast(item.adjusted
+        ? 'Nur noch ' + item.qty + (item.qty === 1 ? ' Glas' : ' Gläser') + ' verfügbar – ' + zugelegt
+        : zugelegt);
+      return true;
+    }
+
+    function addToCartAndCheckout() {
+      if (addToCart()) window.location.href = 'bestellen.html';
     }
 
     function updateDisplay() {
@@ -607,6 +689,8 @@
       const bestellBtn   = document.getElementById('bestell-btn');
       const bestellText  = document.getElementById('bestell-btn-text');
       const bestellArrow = document.getElementById('bestell-btn-arrow');
+      const cartBtn      = document.getElementById('cart-btn');
+      const cartIcon     = document.getElementById('cart-btn-icon');
       const stockTxt     = document.getElementById('stock-text');
       const stockBar     = document.getElementById('stock-bar');
       const totalLine    = document.getElementById('total-line');
@@ -630,13 +714,14 @@
         stockBar.setAttribute('aria-valuenow', barWidth);
         bestellText.textContent        = 'Jetzt bestellen';
         if (bestellArrow) bestellArrow.style.display = '';
-        bestellBtn.style.pointerEvents = '';
         bestellBtn.style.opacity       = '';
-        const g = encodeURIComponent(ensureG(weight));
-        const p = encodeURIComponent(price);
-        const t = encodeURIComponent(tracht);
-        bestellBtn.href = `bestellen.html?groesse=${g}&preis=${p}&anzahl=${qty}&tracht=${t}`;
-        bestellBtn.removeAttribute('aria-disabled');
+        bestellBtn.disabled            = false;
+        if (cartBtn) {
+          document.getElementById('cart-btn-text').textContent = 'Zum Warenkorb hinzufügen';
+          if (cartIcon) cartIcon.style.display = '';
+          cartBtn.style.opacity = '';
+          cartBtn.disabled      = false;
+        }
         if (notifyForm) notifyForm.classList.add('hidden');
       }
 

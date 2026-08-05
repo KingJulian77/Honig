@@ -13,6 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="sb.js"></script>
+  <script src="cart.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -125,6 +126,10 @@
         <nav class="flex items-center justify-end gap-10">
           <a href="index.html#warum" class="text-ink text-[11px] font-medium tracking-[0.18em] uppercase hover:text-honey transition-colors duration-150">Warum Regional?</a>
           <a href="kontakt.html" class="text-ink text-[11px] font-medium tracking-[0.18em] uppercase hover:text-honey transition-colors duration-150">Kontakt</a>
+          <a href="warenkorb.html" class="relative text-ink hover:text-honey transition-colors duration-150" aria-label="Warenkorb">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2.6 12.4a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.2L21 7H5.2"/></svg>
+            <span data-cart-count aria-live="polite" class="hidden absolute -top-1.5 -right-2 bg-honey text-white rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center" style="font-size:10px;font-weight:600;line-height:1;">0</span>
+          </a>
         </nav>
       </div>
       <!-- Mobile nav -->
@@ -138,6 +143,10 @@
           <a href="index.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Start</a>
           <a href="unser-honig.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Honig</a>
           <a href="kontakt.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Kontakt</a>
+          <a href="warenkorb.html" class="relative text-ink hover:text-honey transition-colors duration-150" aria-label="Warenkorb">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2.6 12.4a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.2L21 7H5.2"/></svg>
+            <span data-cart-count aria-live="polite" class="hidden absolute -top-1.5 -right-2 bg-honey text-white rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center" style="font-size:10px;font-weight:600;line-height:1;">0</span>
+          </a>
         </nav>
       </div>
     </div>
@@ -174,16 +183,15 @@
 
       <!-- Order Summary -->
       <div class="bg-white border border-gray-200 rounded-2xl p-6 mb-8 shadow-[0_2px_12px_rgba(26,26,26,0.05)]" id="order-summary-box">
-        <p class="text-[11px] text-honey tracking-[0.15em] uppercase font-sans mb-4">Deine Bestellung</p>
-        <div class="flex justify-between items-start">
-          <div>
-            <p class="font-serif text-xl text-ink">Blütenhonig aus Hochkamp</p>
-            <p class="text-gray-400 text-sm mt-1" id="summary-groesse">250g Glas</p>
-            <p class="text-gray-400 text-sm mt-0.5" id="summary-tracht">Frühtracht</p>
-          </div>
+        <div class="flex items-center justify-between mb-4">
+          <p class="text-[11px] text-honey tracking-[0.15em] uppercase font-sans">Deine Bestellung</p>
+          <a href="warenkorb.html" class="text-honey text-xs hover:opacity-75 active:opacity-60 transition-opacity duration-150">Warenkorb ändern</a>
+        </div>
+        <div id="summary-items" class="flex flex-col gap-3"></div>
+        <div class="border-t border-gray-200 mt-4 pt-4 flex items-baseline justify-between">
+          <span class="text-sm text-gray-500">Gesamt</span>
           <div class="text-right">
-            <p class="font-serif text-2xl text-ink" id="summary-preis">8,50 €</p>
-            <p class="text-xs text-gray-400 mt-1" id="summary-calc" style="display:none;"></p>
+            <p class="font-serif text-2xl text-ink" id="summary-preis">—</p>
             <p class="text-xs text-gray-400 mt-1">inkl. Versand</p>
           </div>
         </div>
@@ -454,38 +462,60 @@
     function ensureG(w)    { return (w && !String(w).trim().endsWith('g')) ? String(w).trim() + 'g' : String(w || ''); }
     function ensureEuro(p) { return (p && !String(p).includes('€')) ? String(p).trim() + ' €' : String(p || ''); }
 
-    // Read URL params, fall back to sessionStorage draft
-    const params = new URLSearchParams(window.location.search);
-    let groesse  = params.get('groesse');
-    let preis    = params.get('preis');
-    let anzahl   = parseInt(params.get('anzahl')) || 0;
-    const draft  = JSON.parse(sessionStorage.getItem('honig_order_draft') || 'null');
-    if (!groesse || !preis) {
-      if (draft) { groesse = draft.groesse; preis = draft.preis; anzahl = draft.anzahl || 1; }
-    }
-    groesse = ensureG(groesse || '160g');
-    preis   = ensureEuro(preis || '7,00 €');
-    anzahl  = anzahl  || 1;
-    let tracht = params.get('tracht') || (draft && draft.tracht) || 'frühtracht';
+    const draft = JSON.parse(sessionStorage.getItem('honig_order_draft') || 'null');
 
-    const unitNum = parseFloat(preis.replace(/[^0-9,.]/g, '').replace(',', '.')) || 0;
+    // Der Warenkorb ist die Quelle der Wahrheit. Ist er leer, aber es stehen noch
+    // Produktdaten in der URL (alter Link oder Lesezeichen), wird daraus eine
+    // einzelne Position erzeugt – sonst geht es zurück zum Warenkorb.
+    let items = HonigCart.getItems();
+    if (items.length === 0) {
+      const params  = new URLSearchParams(window.location.search);
+      const groesse = params.get('groesse');
+      const preis   = params.get('preis');
+      if (groesse && preis) {
+        HonigCart.addItem({
+          weight: ensureG(groesse),
+          tracht: params.get('tracht') || 'Frühtracht',
+          qty:    parseInt(params.get('anzahl')) || 1,
+          price:  ensureEuro(preis)
+        });
+        items = HonigCart.getItems();
+      }
+    }
+    if (items.length === 0) {
+      window.location.href = 'warenkorb.html';
+    }
+
     let rabattProzent = 0;
 
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function formatPrice(num) { return (Number(num) || 0).toFixed(2).replace('.', ',') + ' €'; }
+
+    // Summe über alle Positionen – der Rabatt gilt für den Gesamtbetrag.
+    function cartTotal() {
+      return items.reduce((sum, i) => sum + i.qty * HonigCart.parsePrice(i.price), 0);
+    }
+
     function updateSummaryDisplay() {
-      const effUnit     = unitNum * (1 - rabattProzent / 100);
-      const effTotal    = anzahl * effUnit;
-      const effUnitFmt  = effUnit.toFixed(2).replace('.', ',') + ' €';
-      const effTotalFmt = effTotal.toFixed(2).replace('.', ',') + ' €';
-      document.getElementById('summary-groesse').textContent = groesse + ' Glas';
-      document.getElementById('summary-tracht').textContent = tracht === 'frühtracht' ? 'Frühtracht' : 'Sommertracht';
-      if (anzahl > 1) {
-        document.getElementById('summary-preis').textContent = effTotalFmt;
-        const calcEl = document.getElementById('summary-calc');
-        calcEl.textContent   = anzahl + ' × ' + effUnitFmt;
-        calcEl.style.display = '';
-      } else {
-        document.getElementById('summary-preis').textContent = effUnitFmt;
-      }
+      const factor = 1 - rabattProzent / 100;
+
+      document.getElementById('summary-items').innerHTML = items.map(i => {
+        const unit = HonigCart.parsePrice(i.price) * factor;
+        return `
+          <div class="flex justify-between items-baseline gap-4">
+            <div style="min-width:0;">
+              <p class="text-ink text-sm">${escapeHtml(i.weight)} · ${escapeHtml(i.tracht)}</p>
+              <p class="text-gray-400 text-xs mt-0.5">${i.qty} × ${escapeHtml(formatPrice(unit))}</p>
+            </div>
+            <span class="text-ink text-sm whitespace-nowrap">${escapeHtml(formatPrice(i.qty * unit))}</span>
+          </div>`;
+      }).join('');
+
+      document.getElementById('summary-preis').textContent = formatPrice(cartTotal() * factor);
     }
 
     function applyDiscount() {
@@ -505,6 +535,47 @@
     }
 
     updateSummaryDisplay();
+
+    // Bestand gegenprüfen, bevor der Kunde das Adressformular ausfüllt – sonst
+    // erfährt er erst im letzten Schritt, dass eine Position nicht mehr da ist.
+    (async function syncStock() {
+      const { data, error } = await sb.from('variants')
+        .select('weight, tracht, quantity')
+        .in('weight', [...new Set(items.map(i => i.weight))]);
+
+      // Datenbank nicht erreichbar -> nicht weiterklicken lassen (wie auf den anderen Seiten).
+      if (error) {
+        const btn = document.getElementById('submit-btn');
+        btn.disabled = true;
+        document.getElementById('submit-btn-text').textContent = 'Shop nicht erreichbar';
+        showToast('Verbindung zum Shop fehlgeschlagen. Bitte lade die Seite neu.');
+        return;
+      }
+
+      const stock = {};
+      (data || []).forEach(v => {
+        stock[String(v.weight).trim().toLowerCase() + '|' + String(v.tracht).trim().toLowerCase()] = v.quantity;
+      });
+
+      const gone   = [];
+      const capped = [];
+
+      items = items.filter(i => {
+        const avail = stock[String(i.weight).trim().toLowerCase() + '|' + String(i.tracht).trim().toLowerCase()] || 0;
+        if (avail <= 0) { gone.push(i.weight + ' ' + i.tracht); return false; }
+        if (i.qty > avail) { capped.push(i.weight + ' ' + i.tracht); i.qty = avail; }
+        return true;
+      });
+
+      if (gone.length || capped.length) {
+        HonigCart.replaceAll(items);
+        updateSummaryDisplay();
+        if (gone.length)   showToast('Nicht mehr verfügbar und entfernt: ' + gone.join(', ') + '.');
+        else               showToast('Menge angepasst: ' + capped.join(', ') + '.');
+      }
+
+      if (items.length === 0) window.location.href = 'warenkorb.html';
+    })();
 
     // Pre-fill fields if returning from zahlung.html
     if (draft) {
@@ -661,8 +732,23 @@
         // 'ok' und 'offline' → Bestellung geht weiter
       }
 
+      const orderItems = items.map(i => ({
+        weight:    i.weight,
+        tracht:    i.tracht,
+        qty:       i.qty,
+        unitPrice: HonigCart.parsePrice(i.price)
+      }));
+
       sessionStorage.setItem('honig_order_draft', JSON.stringify({
-        vorname, nachname, strasse, hausnummer, plz, stadt, groesse, tracht, preis, anzahl,
+        vorname, nachname, strasse, hausnummer, plz, stadt,
+        items: orderItems,
+        total: cartTotal(),
+        // Zusammenfassung in den Alt-Feldern, damit Anzeige und Rechnung auch
+        // dann etwas Lesbares haben, wenn nur diese Felder ausgewertet werden.
+        groesse: orderItems.map(i => i.weight + ' × ' + i.qty).join(', '),
+        tracht:  [...new Set(orderItems.map(i => i.tracht))].join(', '),
+        preis:   formatPrice(cartTotal()),
+        anzahl:  orderItems.reduce((s, i) => s + i.qty, 0),
         rabattCode: document.getElementById('rabatt-code').value.trim(),
         rabattProzent
       }));

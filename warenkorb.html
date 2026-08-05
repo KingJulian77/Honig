@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Warenkorb – Honig aus Hochkamp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="sb.js"></script>
+  <script src="cart.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream:  '#F5F0EB',
+            honey:  '#B8862A',
+            forest: '#2D4A3E',
+            ink:    '#1A1A1A',
+          },
+          fontFamily: {
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+            sans:  ['"DM Sans"', 'system-ui', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background-color: #F5F0EB; color: #1A1A1A; }
+
+    /* Grain-Textur */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 999; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      opacity: 0.032;
+    }
+
+    /* Focus-Ring (WCAG AA) */
+    :focus-visible { outline: 2px solid #B8862A; outline-offset: 3px; border-radius: 2px; }
+
+    /* Cursor */
+    a, button, [role="button"], label[for] { cursor: pointer; }
+
+    /* Reduced-Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
+    }
+
+    /* Input focus state */
+    input:focus { outline: none; border-color: #B8862A !important; }
+
+    /* Field label */
+    .field-label { display: block; font-size: 12px; font-weight: 500; color: #4B5563; margin-bottom: 6px; }
+    .field-label .req { color: #B8862A; margin-left: 2px; }
+
+    /* Toast */
+    #toast { transition: opacity 0.2s, transform 0.2s; }
+    #toast.hidden { opacity: 0; transform: translateY(8px); pointer-events: none; }
+    #toast:not(.hidden) { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- ─── Toast-Benachrichtigung ────────────────────────────────── -->
+  <div
+    id="toast"
+    role="status"
+    aria-live="polite"
+    class="hidden fixed bottom-6 right-6 z-[1001] flex items-center gap-3 bg-ink text-white text-sm font-sans px-5 py-3.5 rounded-full shadow-[0_8px_32px_rgba(26,26,26,0.18)]"
+  >
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+    <span id="toast-msg"></span>
+  </div>
+
+  <!-- ─── DOI-Bestätigungs-Modal ──────────────────────────────── -->
+  <div
+    id="doi-modal"
+    class="hidden fixed inset-0 z-[1002] flex items-center justify-center px-4"
+    style="background:rgba(0,0,0,0.45);"
+    onclick="if(event.target===this)closeDoiModal()"
+  >
+    <div class="bg-white rounded-2xl shadow-[0_8px_40px_rgba(26,26,26,0.18)] p-8 md:p-10 text-center" style="max-width:440px;width:100%;">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-5" style="background:rgba(184,134,42,0.1);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#B8862A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      </div>
+      <h2 class="font-serif font-normal text-ink text-2xl mb-3">Fast geschafft!</h2>
+      <p class="text-gray-500 text-sm leading-relaxed mb-7">
+        Wir haben eine Bestätigungs-E-Mail an<br>
+        <strong id="doi-modal-email" class="text-ink font-medium"></strong><br>
+        gesendet. Bitte klicke auf den Link in der E-Mail,<br>um deine Anmeldung abzuschließen.
+      </p>
+      <button
+        onclick="closeDoiModal()"
+        class="bg-honey text-white font-sans text-[11px] tracking-[0.18em] uppercase px-8 py-3.5 rounded-full hover:opacity-90 transition-opacity duration-150"
+      >
+        Verstanden
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── Navigation ─────────────────────────────────────────────── -->
+  <header class="sticky top-0 z-[100] bg-cream border-b border-gray-200 shadow-[0_2px_12px_rgba(26,26,26,0.05)]">
+    <div class="max-w-screen-xl mx-auto px-5 md:px-10">
+      <!-- Desktop nav -->
+      <div class="hidden md:grid grid-cols-3 items-center h-[76px]">
+        <nav class="flex items-center gap-10">
+          <a href="index.html" class="text-ink text-[11px] font-medium tracking-[0.18em] uppercase hover:text-honey transition-colors duration-150">Startseite</a>
+          <a href="unser-honig.html" class="text-ink text-[11px] font-medium tracking-[0.18em] uppercase hover:text-honey transition-colors duration-150">Unser Honig</a>
+        </nav>
+        <div class="flex justify-center">
+          <a href="index.html">
+            <div class="w-[68px] h-[68px] rounded-full overflow-hidden shadow-[0_2px_10px_rgba(26,26,26,0.10)] hover:shadow-[0_4px_16px_rgba(26,26,26,0.15)] transition-shadow duration-200">
+              <img src="aktive-fotos-website/Logo neu.jpg" alt="Honig aus Hochkamp – zur Startseite" style="width:100%;height:100%;object-fit:cover;">
+            </div>
+          </a>
+        </div>
+        <nav class="flex items-center justify-end gap-10">
+          <a href="index.html#warum" class="text-ink text-[11px] font-medium tracking-[0.18em] uppercase hover:text-honey transition-colors duration-150">Warum Regional?</a>
+          <a href="kontakt.html" class="text-ink text-[11px] font-medium tracking-[0.18em] uppercase hover:text-honey transition-colors duration-150">Kontakt</a>
+          <a href="warenkorb.html" class="relative text-honey" aria-label="Warenkorb" aria-current="page">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2.6 12.4a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.2L21 7H5.2"/></svg>
+            <span data-cart-count aria-live="polite" class="hidden absolute -top-1.5 -right-2 bg-honey text-white rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center" style="font-size:10px;font-weight:600;line-height:1;">0</span>
+          </a>
+        </nav>
+      </div>
+      <!-- Mobile nav -->
+      <div class="flex md:hidden items-center justify-between h-[64px]">
+        <a href="index.html">
+          <div class="w-[48px] h-[48px] rounded-full overflow-hidden shadow-[0_2px_8px_rgba(26,26,26,0.10)]">
+            <img src="aktive-fotos-website/Logo neu.jpg" alt="Honig aus Hochkamp – zur Startseite" style="width:100%;height:100%;object-fit:cover;">
+          </div>
+        </a>
+        <nav class="flex items-center gap-5">
+          <a href="index.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Start</a>
+          <a href="unser-honig.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Honig</a>
+          <a href="kontakt.html" class="text-ink text-[11px] font-medium tracking-[0.15em] uppercase hover:text-honey transition-colors duration-150">Kontakt</a>
+          <a href="warenkorb.html" class="relative text-honey" aria-label="Warenkorb" aria-current="page">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2.6 12.4a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.2L21 7H5.2"/></svg>
+            <span data-cart-count aria-live="polite" class="hidden absolute -top-1.5 -right-2 bg-honey text-white rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center" style="font-size:10px;font-weight:600;line-height:1;">0</span>
+          </a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── Page Header ─────────────────────────────────────────── -->
+  <section class="py-14 text-center border-b border-gray-200">
+    <p class="text-honey text-[11px] tracking-[0.2em] uppercase mb-4 font-sans">Deine Auswahl</p>
+    <h1 class="font-serif font-normal text-ink" style="font-size:clamp(32px,3.5vw,48px);">
+      Warenkorb
+    </h1>
+  </section>
+
+  <!-- ─── Content ─────────────────────────────────────────────── -->
+  <section class="py-16 pb-24">
+    <div class="mx-auto px-6" style="max-width:640px;">
+
+      <!-- Hinweise (Bestand angepasst, Variante entfernt, Verbindung weg …) -->
+      <div id="cart-notice" class="hidden rounded-2xl p-4 mb-6 border" role="alert"
+        style="background:rgba(184,134,42,0.06); border-color:rgba(184,134,42,0.3);">
+        <p class="text-sm leading-relaxed" style="color:#8a6420;" id="cart-notice-text"></p>
+      </div>
+
+      <!-- Positionen -->
+      <div id="cart-items" class="flex flex-col gap-4 mb-8"></div>
+
+      <!-- Summe + Kasse -->
+      <div id="cart-summary" class="hidden">
+        <div class="bg-white border border-gray-200 rounded-2xl p-5 mb-6 shadow-[0_2px_12px_rgba(26,26,26,0.05)]">
+          <div class="flex items-baseline justify-between">
+            <span class="text-sm text-gray-500">Gesamt</span>
+            <span class="font-serif text-2xl text-ink" id="cart-total">—</span>
+          </div>
+          <p class="text-xs text-gray-400 mt-1 text-right">inkl. Versand</p>
+        </div>
+
+        <button
+          id="checkout-btn"
+          type="button"
+          onclick="goToCheckout()"
+          class="flex items-center justify-center gap-2 bg-honey text-white text-sm font-sans font-medium py-4 rounded-full hover:opacity-90 active:opacity-80 transition-opacity duration-150 w-full disabled:opacity-50 disabled:cursor-not-allowed"
+          style="letter-spacing:0.01em;"
+        >
+          <span id="checkout-btn-text">Zur Kasse</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+
+        <a href="unser-honig.html"
+          class="block text-center text-honey text-sm font-medium mt-4 hover:opacity-75 active:opacity-60 transition-opacity duration-150">
+          Weiter einkaufen
+        </a>
+      </div>
+
+      <!-- Leerer Warenkorb -->
+      <div id="cart-empty" class="hidden py-10 text-center">
+        <div class="flex justify-center mb-6">
+          <div class="w-16 h-16 rounded-full bg-honey/10 flex items-center justify-center">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#B8862A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2.6 12.4a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.2L21 7H5.2"/></svg>
+          </div>
+        </div>
+        <h2 class="font-serif font-normal text-ink text-2xl mb-3">Dein Warenkorb ist leer</h2>
+        <p class="text-gray-500 text-sm leading-relaxed mb-7">
+          Leg dir ein Glas Honig aus Hochkamp dazu – frisch von unseren Bienen.
+        </p>
+        <a href="unser-honig.html"
+          class="inline-flex items-center justify-center gap-2 bg-honey text-white font-sans text-[11px] tracking-[0.18em] uppercase px-8 py-3.5 rounded-full hover:opacity-90 active:opacity-80 transition-opacity duration-150">
+          Zum Honig
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─── Footer ─────────────────────────────────────────────── -->
+  <footer class="bg-cream border-t border-gray-200">
+    <div class="max-w-screen-xl mx-auto px-5 md:px-10 py-16">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20">
+        <div>
+          <h3 class="font-serif font-normal text-ink text-2xl mb-4">Bleib auf dem Laufenden</h3>
+          <p class="text-gray-500 text-sm leading-relaxed mb-7">
+            Unser Honig ist gerade ausverkauft? Kein Problem! Trag dich hier ein und
+            wir benachrichtigen dich per E-Mail, sobald neuer Honig verfügbar ist.
+          </p>
+          <div class="flex gap-3">
+            <label for="footer-email" class="sr-only">E-Mail-Adresse</label>
+            <input type="email" id="footer-email" placeholder="deine@email.de" autocomplete="email"
+              class="flex-1 border border-gray-300 rounded-full px-5 py-3 text-sm bg-white focus:outline-none focus:border-honey transition-colors duration-150" style="min-width:0;">
+            <button
+              id="footer-newsletter-btn"
+              onclick="saveSubscriber()"
+              class="bg-honey text-white text-sm font-sans font-medium px-6 py-3 rounded-full whitespace-nowrap hover:opacity-90 active:opacity-80 transition-opacity duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+              <span id="footer-newsletter-text">Benachrichtigen</span>
+            </button>
+          </div>
+          <a href="admin-login.html" class="text-gray-400 text-xs mt-4 inline-block hover:text-gray-600 transition-colors duration-150">Admin Anmeldung</a>
+        </div>
+        <div>
+          <p class="text-ink text-sm font-medium mb-5">Honig aus Hochkamp</p>
+          <nav class="flex flex-col gap-3">
+            <a href="index.html" class="text-gray-500 text-sm hover:text-ink transition-colors duration-150">Startseite</a>
+            <a href="unser-honig.html" class="text-gray-500 text-sm hover:text-ink transition-colors duration-150">Unser Honig</a>
+            <a href="index.html#warum" class="text-gray-500 text-sm hover:text-ink transition-colors duration-150">Warum Regional?</a>
+            <a href="kontakt.html" class="text-gray-500 text-sm hover:text-ink transition-colors duration-150">Kontakt</a>
+            <a href="impressum.html" class="text-gray-500 text-sm hover:text-ink transition-colors duration-150">Impressum</a>
+            <a href="datenschutz.html" class="text-gray-500 text-sm hover:text-ink transition-colors duration-150">Datenschutz</a>
+            <a href="agb.html" class="text-gray-500 text-sm hover:text-ink transition-colors duration-150">AGB</a>
+          </nav>
+        </div>
+      </div>
+    </div>
+    <div class="border-t border-gray-200">
+      <div class="max-w-screen-xl mx-auto px-10 py-5 text-center">
+        <p class="text-gray-400 text-sm">© 2025 Honig aus Hochkamp. Alle Rechte vorbehalten.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const BASE_URL = 'https://hochkamphonig.de'; // ← eigene Domain eintragen
+    const EMAILJS_PUBLIC_KEY  = 'krQRCnNy9nv3DaLM7';
+    const EMAILJS_SERVICE_ID  = 'service_knxwgs2';
+    const EMAILJS_DOI_TEMPLATE = 'template_n5rpq2a'; // ← Template-ID aus EmailJS-Dashboard
+
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
+    function showDoiModal(email) {
+      document.getElementById('doi-modal-email').textContent = email;
+      document.getElementById('doi-modal').classList.remove('hidden');
+    }
+    function closeDoiModal() {
+      document.getElementById('doi-modal').classList.add('hidden');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 4000);
+    }
+    async function saveSubscriber() {
+      const input   = document.getElementById('footer-email');
+      const btn     = document.getElementById('footer-newsletter-btn');
+      const btnText = document.getElementById('footer-newsletter-text');
+      const email   = input.value.trim();
+
+      if (!email || !email.includes('@')) {
+        input.focus();
+        input.classList.add('border-red-400');
+        setTimeout(() => input.classList.remove('border-red-400'), 2000);
+        return;
+      }
+
+      btn.disabled = true;
+      btnText.textContent = 'Wird gespeichert…';
+
+      const { data: existing } = await sb
+        .from('subscribers')
+        .select('confirmed')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existing?.confirmed) {
+        input.value = '';
+        btn.disabled = false;
+        btnText.textContent = 'Benachrichtigen';
+        showToast('Diese E-Mail ist bereits für den Newsletter eingetragen.');
+        return;
+      }
+
+      const token = crypto.randomUUID();
+      const datum = new Date().toLocaleDateString('de-DE');
+
+      await sb.from('subscribers').upsert(
+        { email, datum, confirmed: false, token, token_created_at: new Date().toISOString() },
+        { onConflict: 'email' }
+      );
+
+      const verificationLink = `${BASE_URL}/bestaetigung.html?token=${token}`;
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_DOI_TEMPLATE, {
+        to_email: email,
+        verification_link: verificationLink
+      });
+
+      input.value = '';
+      btn.disabled = false;
+      btnText.textContent = 'Benachrichtigen';
+      showDoiModal(email);
+    }
+
+    // Bestand aus der Datenbank, key = "375g|Sommertracht" -> { quantity, price, image }
+    let stockMap    = null;   // null = noch nicht geladen
+    let checkoutOff = false;  // true = Kasse gesperrt (Verbindungsproblem)
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function showNotice(msg) {
+      const box = document.getElementById('cart-notice');
+      document.getElementById('cart-notice-text').textContent = msg;
+      box.classList.remove('hidden');
+    }
+
+    function hideNotice() {
+      document.getElementById('cart-notice').classList.add('hidden');
+    }
+
+    // Holt den aktuellen Bestand und gleicht den Warenkorb dagegen ab:
+    // gelöschte Varianten fliegen raus, Mengen werden gekappt, Preise aktualisiert.
+    async function syncWithStock() {
+      const { data, error } = await sb.from('variants').select('*');
+
+      if (error) {
+        // Bestand unbekannt -> lieber gar nicht bestellen lassen, statt eine
+        // Bestellung anzunehmen, die hinten raus scheitert.
+        checkoutOff = true;
+        showNotice('Verbindung zum Shop fehlgeschlagen. Bitte lade die Seite neu – bis dahin ist die Kasse gesperrt.');
+        return;
+      }
+
+      stockMap = {};
+      (data || []).forEach(v => {
+        stockMap[HonigCart.keyOf({ weight: v.weight, tracht: v.tracht })] = {
+          quantity: v.quantity,
+          price:    v.price,
+          image:    v.image_url || ''
+        };
+      });
+
+      const items    = HonigCart.getItems();
+      const kept     = [];
+      const removed  = [];
+      const capped   = [];
+
+      items.forEach(item => {
+        const info = stockMap[HonigCart.keyOf(item)];
+        if (!info || info.quantity <= 0) {
+          removed.push(item.weight + ' ' + item.tracht);
+          return;
+        }
+        if (item.qty > info.quantity) {
+          capped.push(item.weight + ' ' + item.tracht + ' (jetzt ' + info.quantity + ')');
+          item.qty = info.quantity;
+        }
+        if (info.price)  item.price = info.price;
+        if (info.image)  item.image = info.image;
+        kept.push(item);
+      });
+
+      if (removed.length || capped.length) {
+        HonigCart.replaceAll(kept);
+        const parts = [];
+        if (removed.length) parts.push('Nicht mehr verfügbar und entfernt: ' + removed.join(', ') + '.');
+        if (capped.length)  parts.push('Menge angepasst: ' + capped.join(', ') + '.');
+        showNotice(parts.join(' '));
+      }
+    }
+
+    function render() {
+      const items   = HonigCart.getItems();
+      const list    = document.getElementById('cart-items');
+      const summary = document.getElementById('cart-summary');
+      const empty   = document.getElementById('cart-empty');
+
+      if (items.length === 0) {
+        list.innerHTML = '';
+        summary.classList.add('hidden');
+        empty.classList.remove('hidden');
+        return;
+      }
+
+      empty.classList.add('hidden');
+      summary.classList.remove('hidden');
+
+      list.innerHTML = items.map(item => {
+        const key       = HonigCart.keyOf(item);
+        const unit      = HonigCart.parsePrice(item.price);
+        const lineTotal = HonigCart.formatPrice(unit * item.qty);
+        const max       = stockMap ? (stockMap[key] ? stockMap[key].quantity : 0) : 99;
+        const atMax     = item.qty >= max;
+        const label     = escapeHtml(item.weight) + ' · ' + escapeHtml(item.tracht);
+        const img       = item.image
+          ? `<img src="${escapeHtml(item.image)}" alt="" class="w-16 h-16 rounded-xl object-cover flex-shrink-0">`
+          : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:rgba(184,134,42,0.10);"></div>`;
+
+        return `
+        <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-[0_2px_12px_rgba(26,26,26,0.05)] flex items-center gap-4">
+          ${img}
+          <div class="flex-1" style="min-width:0;">
+            <p class="text-ink text-sm font-medium">${label}</p>
+            <p class="text-gray-400 text-xs mt-0.5">${escapeHtml(HonigCart.formatPrice(unit))} pro Glas</p>
+            <div class="flex items-center gap-2 mt-3">
+              <button type="button" onclick="changeQty('${key}', -1)" aria-label="Menge verringern"
+                class="w-8 h-8 rounded-full border border-gray-300 text-ink flex items-center justify-center hover:border-honey hover:text-honey transition-colors duration-150">−</button>
+              <span class="text-sm text-ink w-6 text-center" aria-live="polite">${item.qty}</span>
+              <button type="button" onclick="changeQty('${key}', 1)" aria-label="Menge erhöhen"
+                ${atMax ? 'disabled' : ''}
+                class="w-8 h-8 rounded-full border border-gray-300 text-ink flex items-center justify-center hover:border-honey hover:text-honey transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-gray-300 disabled:hover:text-ink">+</button>
+            </div>
+          </div>
+          <div class="text-right flex flex-col items-end gap-3">
+            <span class="font-serif text-lg text-ink">${escapeHtml(lineTotal)}</span>
+            <button type="button" onclick="removeLine('${key}')" aria-label="${label} entfernen"
+              class="text-gray-400 hover:text-red-500 transition-colors duration-150">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </div>`;
+      }).join('');
+
+      document.getElementById('cart-total').textContent = HonigCart.formatPrice(HonigCart.total());
+
+      const btn = document.getElementById('checkout-btn');
+      btn.disabled = checkoutOff;
+      document.getElementById('checkout-btn-text').textContent =
+        checkoutOff ? 'Kasse nicht verfügbar' : 'Zur Kasse';
+    }
+
+    function changeQty(key, delta) {
+      const item = HonigCart.getItems().find(i => HonigCart.keyOf(i) === key);
+      if (!item) return;
+
+      const next = item.qty + delta;
+      const max  = stockMap ? (stockMap[key] ? stockMap[key].quantity : 0) : 99;
+
+      if (delta > 0 && next > max) {
+        showToast('Mehr als ' + max + (max === 1 ? ' Glas' : ' Gläser') + ' sind aktuell nicht verfügbar.');
+        return;
+      }
+      HonigCart.setQty(key, next);
+      render();
+    }
+
+    function removeLine(key) {
+      HonigCart.removeItem(key);
+      hideNotice();
+      render();
+    }
+
+    function goToCheckout() {
+      if (checkoutOff || HonigCart.count() === 0) return;
+      window.location.href = 'bestellen.html';
+    }
+
+    (async function init() {
+      render();            // sofort anzeigen, damit die Seite nicht leer wirkt
+      await syncWithStock();
+      render();            // nach dem Abgleich mit echten Beständen
+    })();
+
+  </script>
+
+</body>
+</html>
