@@ -255,26 +255,27 @@
             </div>
           </div>
 
-          <!-- CTA -->
-          <button
-            id="bestell-btn"
-            type="button"
-            onclick="addToCartAndCheckout()"
-            class="flex items-center justify-center gap-2 bg-honey text-white text-sm font-sans font-medium px-9 py-4 rounded-full hover:opacity-90 active:opacity-80 transition-opacity duration-150 w-full mb-3"
-            style="letter-spacing:0.01em;"
-          >
-            <span id="bestell-btn-text">Jetzt bestellen</span>
-            <svg id="bestell-btn-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </button>
+          <!-- CTA – Hauptaktion: in die Bestellung legen -->
           <button
             id="cart-btn"
             type="button"
             onclick="addToCart()"
-            class="flex items-center justify-center gap-2 bg-honey text-white text-sm font-sans font-medium px-9 py-4 rounded-full hover:opacity-90 active:opacity-80 transition-opacity duration-150 w-full mb-4"
+            class="flex items-center justify-center gap-2 bg-honey text-white text-sm font-sans font-medium px-9 py-4 rounded-full hover:opacity-90 active:opacity-80 transition-opacity duration-150 w-full mb-3"
             style="letter-spacing:0.01em;"
           >
-            <span id="cart-btn-text">Zum Warenkorb hinzufügen</span>
+            <span id="cart-btn-text">Zur Bestellung hinzufügen</span>
             <svg id="cart-btn-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2.6 12.4a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.2L21 7H5.2"/></svg>
+          </button>
+          <!-- Absprung zum Warenkorb – erscheint erst, wenn etwas drin ist -->
+          <button
+            id="view-btn"
+            type="button"
+            onclick="window.location.href='warenkorb.html'"
+            class="hidden items-center justify-center gap-2 border border-honey text-honey text-sm font-sans font-medium px-9 py-4 rounded-full hover:bg-honey/5 active:bg-honey/10 transition-colors duration-150 w-full mb-4"
+            style="letter-spacing:0.01em;"
+          >
+            <span id="view-btn-text">Bestellung ansehen</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
           <p class="text-center text-gray-400 text-xs">Lieferung nach Hochkamp und Umgebung</p>
 
@@ -547,31 +548,38 @@
 
     let variantMap = {}; // key: "375g-Frühtracht", value: { id, quantity, price, year }
 
-    // Setzt die Seite in den Ausverkauft-Zustand und sperrt den Bestell-Button.
+    // Zeigt "Bestellung ansehen" nur, wenn schon etwas in der Bestellung liegt,
+    // und schreibt die Anzahl in die Beschriftung.
+    function updateViewButton() {
+      const btn  = document.getElementById('view-btn');
+      if (!btn) return;
+      const n = HonigCart.count();
+
+      // 'hidden' setzt display:none und würde ein festes 'flex' überstimmen –
+      // deshalb wird die Anzeige-Klasse hier zusammen mit 'hidden' umgeschaltet.
+      btn.classList.toggle('hidden', n === 0);
+      btn.classList.toggle('flex',   n > 0);
+      document.getElementById('view-btn-text').textContent = 'Bestellung ansehen (' + n + ')';
+    }
+
+    // Setzt die Seite in den Ausverkauft-Zustand und sperrt das Hinzufügen.
+    // "Bestellung ansehen" bleibt bewusst klickbar – im Warenkorb können andere,
+    // lieferbare Sorten liegen.
     // offline = true: Supabase nicht erreichbar. Dann wird zusätzlich das
     // Benachrichtigen-Formular ausgeblendet – es schreibt selbst in die Datenbank
     // und könnte gerade nichts speichern.
     function applySoldOut(offline) {
-      const bestellBtn   = document.getElementById('bestell-btn');
-      const bestellText  = document.getElementById('bestell-btn-text');
-      const bestellArrow = document.getElementById('bestell-btn-arrow');
       const cartBtn      = document.getElementById('cart-btn');
       const cartIcon     = document.getElementById('cart-btn-icon');
       const stockTxt     = document.getElementById('stock-text');
       const stockBar     = document.getElementById('stock-bar');
       const notifyForm   = document.getElementById('stock-notify-form');
 
-      stockTxt.textContent           = 'Aktuell ausverkauft';
-      stockTxt.style.color           = '#ef4444';
-      stockBar.style.width           = '0%';
+      stockTxt.textContent = 'Aktuell ausverkauft';
+      stockTxt.style.color = '#ef4444';
+      stockBar.style.width = '0%';
       stockBar.setAttribute('aria-valuenow', '0');
-      bestellText.textContent        = 'Aktuell ausverkauft';
-      if (bestellArrow) bestellArrow.style.display = 'none';
-      bestellBtn.style.opacity       = '0.45';
-      bestellBtn.disabled            = true;
 
-      // Beide Bestellwege müssen gesperrt sein, sonst landet die ausverkaufte
-      // Variante über den Warenkorb doch noch im Checkout.
       if (cartBtn) {
         document.getElementById('cart-btn-text').textContent = 'Aktuell ausverkauft';
         if (cartIcon) cartIcon.style.display = 'none';
@@ -627,16 +635,19 @@
       const item = currentSelection();
       if (!item) return false;
       HonigCart.addItem(item);
-      const zugelegt = item.qty + '× ' + item.weight + ' ' + item.tracht + ' im Warenkorb.';
+      updateViewButton();
+      const zugelegt = item.qty + '× ' + item.weight + ' ' + item.tracht + ' in der Bestellung.';
       showToast(item.adjusted
         ? 'Nur noch ' + item.qty + (item.qty === 1 ? ' Glas' : ' Gläser') + ' verfügbar – ' + zugelegt
         : zugelegt);
       return true;
     }
 
-    function addToCartAndCheckout() {
-      if (addToCart()) window.location.href = 'bestellen.html';
-    }
+    // Anderer Tab hat die Bestellung geändert – Button nachziehen (gleiches
+    // Muster wie renderBadge() in cart.js).
+    window.addEventListener('storage', function (e) {
+      if (e.key === 'honig_cart') updateViewButton();
+    });
 
     function updateDisplay() {
       const btn = document.querySelector('.variant-btn.active');
@@ -686,9 +697,6 @@
       const total    = qty * priceNum;
       const totalFmt = total.toFixed(2).replace('.', ',') + ' €';
 
-      const bestellBtn   = document.getElementById('bestell-btn');
-      const bestellText  = document.getElementById('bestell-btn-text');
-      const bestellArrow = document.getElementById('bestell-btn-arrow');
       const cartBtn      = document.getElementById('cart-btn');
       const cartIcon     = document.getElementById('cart-btn-icon');
       const stockTxt     = document.getElementById('stock-text');
@@ -712,12 +720,8 @@
         const barWidth                 = Math.min(100, (stock / maxStock) * 100);
         stockBar.style.width           = barWidth + '%';
         stockBar.setAttribute('aria-valuenow', barWidth);
-        bestellText.textContent        = 'Jetzt bestellen';
-        if (bestellArrow) bestellArrow.style.display = '';
-        bestellBtn.style.opacity       = '';
-        bestellBtn.disabled            = false;
         if (cartBtn) {
-          document.getElementById('cart-btn-text').textContent = 'Zum Warenkorb hinzufügen';
+          document.getElementById('cart-btn-text').textContent = 'Zur Bestellung hinzufügen';
           if (cartIcon) cartIcon.style.display = '';
           cartBtn.style.opacity = '';
           cartBtn.disabled      = false;
@@ -803,6 +807,7 @@
 
     (function init() {
       document.getElementById('qty-select').addEventListener('input', updateDisplay);
+      updateViewButton();
       loadVariants();
     })();
   </script>
