@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS orders (
   tracht      TEXT NOT NULL DEFAULT 'frühtracht',
   preis       TEXT NOT NULL,
   items       JSONB,
+  ref         TEXT,
   rabatt_code TEXT DEFAULT '',
   status      TEXT NOT NULL DEFAULT 'ausstehend',
   archived    BOOLEAN NOT NULL DEFAULT false,
@@ -59,6 +60,7 @@ ALTER TABLE orders      ADD COLUMN IF NOT EXISTS email       TEXT;
 ALTER TABLE orders      ADD COLUMN IF NOT EXISTS tracht      TEXT DEFAULT 'frühtracht';
 ALTER TABLE orders      ADD COLUMN IF NOT EXISTS rabatt_code TEXT DEFAULT '';
 ALTER TABLE orders      ADD COLUMN IF NOT EXISTS items       JSONB;
+ALTER TABLE orders      ADD COLUMN IF NOT EXISTS ref         TEXT;
 ALTER TABLE variants    ADD COLUMN IF NOT EXISTS image_url   TEXT;
 ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS confirmed        BOOLEAN     DEFAULT false;
 ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS token            TEXT UNIQUE;
@@ -98,9 +100,10 @@ EXCEPTION
 END $$;
 
 
--- ── 4. Index für Token-Lookups ────────────────────────────────────────
+-- ── 4. Indizes ────────────────────────────────────────────────────────
 
 CREATE INDEX IF NOT EXISTS subscribers_token_idx ON subscribers(token);
+CREATE INDEX IF NOT EXISTS orders_ref_idx        ON orders(ref);
 
 
 -- ── 5. Startvarianten eintragen ───────────────────────────────────────

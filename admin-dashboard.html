@@ -228,7 +228,7 @@
       <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-4">
         <!-- Table header (desktop only) -->
         <div class="hidden md:grid text-xs font-medium text-gray-400 uppercase tracking-wider px-6 py-4 border-b border-gray-100"
-          style="grid-template-columns: 100px 90px 130px 1fr 80px 90px 120px 170px;">
+          style="grid-template-columns: 135px 90px 130px 1fr 80px 90px 120px 170px;">
           <span>Bestellnr.</span>
           <span>Datum</span>
           <span>Name</span>
@@ -256,7 +256,7 @@
       <div id="archived-section" class="hidden">
         <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden" style="opacity:0.8;">
           <div class="hidden md:grid text-xs font-medium text-gray-400 uppercase tracking-wider px-6 py-4 border-b border-gray-100"
-            style="grid-template-columns: 100px 90px 130px 1fr 80px 90px 120px 170px;">
+            style="grid-template-columns: 135px 90px 130px 1fr 80px 90px 120px 170px;">
             <span>Bestellnr.</span>
             <span>Datum</span>
             <span>Name</span>
@@ -710,10 +710,9 @@
 
       let html = '<ol class="flex flex-col gap-3">';
       route.forEach((s, i) => {
-        const id = String(s.order.id).padStart(4, '0');
         html += `<li class="flex items-baseline gap-3 text-sm">`
           + `<span class="font-medium text-honey w-6 shrink-0">${i + 1}.</span>`
-          + `<span><span class="font-medium text-ink">#${id}</span>`
+          + `<span><span class="font-medium text-ink">${orderNum(s.order)}</span>`
           + ` <span class="text-gray-500">— ${s.address}</span></span>`
           + `</li>`;
       });
@@ -815,10 +814,12 @@
       return m ? parseInt(m[1]) : 1;
     }
 
-    const COL = '100px 90px 130px 1fr 80px 90px 120px 170px';
+    const COL = '135px 90px 130px 1fr 80px 90px 120px 170px';
 
-    function orderNum(id) {
-      return '#' + String(id).padStart(4, '0');
+    // Seit der Warenkorb-Umstellung bringt jede Bestellung ihre eigene Nummer mit.
+    // Ältere Bestellungen haben keine – dort bleibt die id die Bestellnummer.
+    function orderNum(o) {
+      return o.ref || ('#' + String(o.id).padStart(4, '0'));
     }
 
     const TRASH_ICON = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none">
@@ -858,7 +859,7 @@
         <div class="hidden md:grid items-center px-6 py-4 border-b border-gray-50 hover:bg-gray-50/50 transition-colors text-sm"
           style="grid-template-columns:${COL};">
           <div>
-            <span style="font-size:11px;font-weight:600;color:#B8862A;letter-spacing:0.04em;">${orderNum(o.id)}</span>
+            <span style="font-size:11px;font-weight:600;color:#B8862A;letter-spacing:0.04em;">${orderNum(o)}</span>
             ${invoiceBtn(o.id)}
           </div>
           <span class="text-gray-400">${o.datum}</span>
@@ -892,7 +893,7 @@
         <div class="md:hidden px-4 py-4 border-b border-gray-100 text-sm">
           <div class="flex items-start justify-between mb-2">
             <div>
-              <p style="font-size:10px;font-weight:600;color:#B8862A;letter-spacing:0.04em;margin-bottom:2px;">${orderNum(o.id)}</p>
+              <p style="font-size:10px;font-weight:600;color:#B8862A;letter-spacing:0.04em;margin-bottom:2px;">${orderNum(o)}</p>
               <p class="font-medium text-ink">${o.vorname || ''} ${o.nachname || ''}</p>
               ${o.email ? `<p class="text-gray-400 text-xs">${o.email}</p>` : ''}
               <p class="text-gray-400 text-xs">${o.datum}</p>
@@ -934,7 +935,7 @@
         <div class="hidden md:grid items-center px-6 py-4 border-b border-gray-50 text-sm"
           style="grid-template-columns:${COL};">
           <div>
-            <span style="font-size:11px;font-weight:600;color:#B8862A;letter-spacing:0.04em;opacity:0.6;">${orderNum(o.id)}</span>
+            <span style="font-size:11px;font-weight:600;color:#B8862A;letter-spacing:0.04em;opacity:0.6;">${orderNum(o)}</span>
             ${invoiceBtn(o.id, true)}
           </div>
           <span class="text-gray-400">${o.datum}</span>
@@ -966,7 +967,7 @@
         <div class="md:hidden px-4 py-4 border-b border-gray-100 text-sm">
           <div class="flex items-start justify-between mb-2">
             <div>
-              <p style="font-size:10px;font-weight:600;color:#B8862A;letter-spacing:0.04em;margin-bottom:2px;opacity:0.6;">${orderNum(o.id)}</p>
+              <p style="font-size:10px;font-weight:600;color:#B8862A;letter-spacing:0.04em;margin-bottom:2px;opacity:0.6;">${orderNum(o)}</p>
               <p class="text-gray-400 font-medium">${o.vorname || ''} ${o.nachname || ''}</p>
               ${o.email ? `<p class="text-gray-400 text-xs">${o.email}</p>` : ''}
               <p class="text-gray-400 text-xs">${o.datum}</p>

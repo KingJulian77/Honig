@@ -50,7 +50,8 @@
     }
 
     return {
-      orderId:    '#' + String(o.id).padStart(4, '0'),
+      // Ohne ref: Bestellung von vor der Bestellnummer – dort bleibt die id die Nummer.
+      orderId:    o.ref || ('#' + String(o.id).padStart(4, '0')),
       datum:      o.datum || '',
       vorname:    o.vorname || '',
       nachname:   o.nachname || '',

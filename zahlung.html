@@ -371,7 +371,22 @@
 
       function parsePrice(p) { return parseFloat(String(p || '').replace(/[^0-9,.]/g, '').replace(',', '.')) || 0; }
       function formatPrice(num) { return (Number(num) || 0).toFixed(2).replace('.', ',') + ' €'; }
-      function orderNum(id) { return id ? '#' + String(id).padStart(4, '0') : ''; }
+      // Bestellnummer für den Kunden. Sie entsteht hier im Browser, weil Besucher
+      // Bestellungen nur schreiben und nicht lesen dürfen – die von der Datenbank
+      // vergebene id kommt deshalb nie beim Kunden an.
+      function makeOrderRef() {
+        const d  = new Date();
+        const p2 = n => String(n).padStart(2, '0');
+        const datePart = String(d.getFullYear()).slice(2) + p2(d.getMonth() + 1) + p2(d.getDate());
+
+        const bytes = new Uint8Array(4);
+        crypto.getRandomValues(bytes);
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // ohne I, O, 0, 1 – nicht verwechselbar
+        let rand = '';
+        for (const b of bytes) rand += chars[b % chars.length];
+
+        return 'HH-' + datePart + '-' + rand;
+      }
       function escapeHtml(s) {
         return String(s).replace(/[&<>"']/g, c =>
           ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -490,9 +505,14 @@
       }
 
       // Setzt die Bestände zurück, die in diesem Anlauf schon abgezogen wurden.
+      // Läuft auch im Fehlerfall – darf deshalb selbst nichts werfen.
       async function rollback(applied) {
         for (const a of applied) {
-          await sb.from('variants').update({ quantity: a.before }).eq('id', a.id);
+          try {
+            await sb.from('variants').update({ quantity: a.before }).eq('id', a.id);
+          } catch (err) {
+            console.error('Rollback fehlgeschlagen für Variante', a.id, err);
+          }
         }
       }
 
@@ -513,100 +533,120 @@
           payText.textContent = 'Per PayPal überweisen';
         };
 
-        const res = await fetchVariants();
-        if (!res.ok) {
-          resetBtn();
-          showToast('Bestellung konnte nicht gesendet werden. Bitte versuche es in Kürze erneut.');
-          return;
-        }
+        // Bestände, die in diesem Anlauf schon abgezogen wurden. Steht außerhalb von
+        // try, damit auch der catch-Zweig sie zurückbuchen kann.
+        const applied = [];
 
-        // 1) Erst alles prüfen – es wird nichts gebucht, solange eine Position klemmt.
-        for (const i of items) {
-          const v = res.map[keyOf(i)];
-          if (!v || v.quantity < i.qty) {
+        try {
+          const res = await fetchVariants();
+          if (!res.ok) {
             resetBtn();
-            showToast('Leider ist ' + i.weight + ' ' + i.tracht + ' nicht mehr in dieser Menge verfügbar.');
-            await loadStock();
+            showToast('Bestellung konnte nicht gesendet werden. Bitte versuche es in Kürze erneut.');
             return;
           }
-        }
 
-        // 2) Bestände abziehen und merken, was schon gebucht wurde.
-        const applied = [];
-        for (const i of items) {
-          const v      = res.map[keyOf(i)];
-          const before = v.quantity;   // vor dem Update festhalten – sonst kippt der Rollback-Wert
+          // 1) Erst alles prüfen – es wird nichts gebucht, solange eine Position klemmt.
+          for (const i of items) {
+            const v = res.map[keyOf(i)];
+            if (!v || v.quantity < i.qty) {
+              resetBtn();
+              showToast('Leider ist ' + i.weight + ' ' + i.tracht + ' nicht mehr in dieser Menge verfügbar.');
+              await loadStock();
+              return;
+            }
+          }
 
-          const { error: stockErr } = await sb.from('variants')
-            .update({ quantity: before - i.qty })
-            .eq('id', v.id);
+          // 2) Bestände abziehen und merken, was schon gebucht wurde.
+          for (const i of items) {
+            const v      = res.map[keyOf(i)];
+            const before = v.quantity;   // vor dem Update festhalten – sonst kippt der Rollback-Wert
 
-          if (stockErr) {
+            const { error: stockErr } = await sb.from('variants')
+              .update({ quantity: before - i.qty })
+              .eq('id', v.id);
+
+            if (stockErr) {
+              console.error('Bestandsabzug fehlgeschlagen:', stockErr);
+              await rollback(applied);
+              resetBtn();
+              showToast('Fehler beim Aktualisieren des Bestands. Bitte versuche es erneut.');
+              return;
+            }
+            applied.push({ id: v.id, before: before });
+          }
+
+          // 3) Eine Bestellung mit allen Positionen speichern.
+          const total       = cartTotal();
+          const orderItems  = items.map(i => ({
+            weight:    i.weight,
+            tracht:    i.tracht,
+            qty:       i.qty,
+            unitPrice: Number(lineUnit(i).toFixed(2))
+          }));
+
+          // Die Bestellnummer entsteht hier und wird mitgespeichert. Kein .select() am
+          // Insert: Besucher dürfen Bestellungen nur schreiben, und ein "RETURNING"
+          // bräuchte ein Leserecht, das sie nicht haben – der Insert würde scheitern.
+          const orderRef = makeOrderRef();
+
+          const { error: orderErr } = await sb.from('orders').insert({
+            datum:       new Date().toLocaleDateString('de-DE'),
+            ref:         orderRef,
+            vorname:     draft.vorname || '',
+            nachname:    draft.nachname || '',
+            strasse:     draft.strasse,
+            hausnummer:  draft.hausnummer,
+            plz:         draft.plz,
+            stadt:       draft.stadt,
+            // Lesbare Zusammenfassung für Ansichten, die nur diese Felder kennen.
+            groesse:     orderItems.map(i => i.weight + ' × ' + i.qty).join(', '),
+            tracht:      [...new Set(orderItems.map(i => i.tracht))].join(', '),
+            preis:       formatPrice(total),
+            items:       orderItems,
+            status:      'ausstehend',
+            archived:    false,
+            rabatt_code: draft.rabattCode || ''
+          });
+
+          if (orderErr) {
+            console.error('Bestellung speichern fehlgeschlagen:', orderErr);
             await rollback(applied);
             resetBtn();
-            showToast('Fehler beim Aktualisieren des Bestands. Bitte versuche es erneut.');
+            showToast('Fehler beim Speichern der Bestellung. Bitte versuche es erneut.');
             return;
           }
-          applied.push({ id: v.id, before: before });
-        }
 
-        // 3) Eine Bestellung mit allen Positionen speichern.
-        const total       = cartTotal();
-        const orderItems  = items.map(i => ({
-          weight:    i.weight,
-          tracht:    i.tracht,
-          qty:       i.qty,
-          unitPrice: Number(lineUnit(i).toFixed(2))
-        }));
+          const orderIdEl = document.getElementById('manual-order-id');
+          if (orderIdEl) orderIdEl.textContent = 'Bestellnummer ' + orderRef;
 
-        const { data: orderData, error: orderErr } = await sb.from('orders').insert({
-          datum:       new Date().toLocaleDateString('de-DE'),
-          vorname:     draft.vorname || '',
-          nachname:    draft.nachname || '',
-          strasse:     draft.strasse,
-          hausnummer:  draft.hausnummer,
-          plz:         draft.plz,
-          stadt:       draft.stadt,
-          // Lesbare Zusammenfassung für Ansichten, die nur diese Felder kennen.
-          groesse:     orderItems.map(i => i.weight + ' × ' + i.qty).join(', '),
-          tracht:      [...new Set(orderItems.map(i => i.tracht))].join(', '),
-          preis:       formatPrice(total),
-          items:       orderItems,
-          status:      'ausstehend',
-          archived:    false,
-          rabatt_code: draft.rabattCode || ''
-        }).select('id').single();
+          window._invoiceData = {
+            orderId:    orderRef,
+            datum:      new Date().toLocaleDateString('de-DE'),
+            vorname:    draft.vorname || '',
+            nachname:   draft.nachname || '',
+            strasse:    draft.strasse,
+            hausnummer: draft.hausnummer,
+            plz:        draft.plz,
+            stadt:      draft.stadt,
+            items:      orderItems,
+            total:      total,
+            isPaid:     false,
+          };
 
-        if (orderErr) {
+          sessionStorage.removeItem('honig_order_draft');
+          HonigCart.clear();
+
+          document.getElementById('manual-total').textContent = formatPrice(total);
+          document.getElementById('checkout-content').classList.add('hidden');
+          document.getElementById('success-msg-manual').classList.remove('hidden');
+        } catch (err) {
+          // Abgebrochene Verbindung o. Ä.: ohne diesen Zweig bliebe der Button
+          // dauerhaft auf "Wird gesendet …" stehen, ohne jede Meldung.
+          console.error('Bestellung fehlgeschlagen:', err);
           await rollback(applied);
           resetBtn();
-          showToast('Fehler beim Speichern der Bestellung. Bitte versuche es erneut.');
-          return;
+          showToast('Bestellung konnte nicht gesendet werden. Bitte versuche es in Kürze erneut.');
         }
-
-        const orderIdEl = document.getElementById('manual-order-id');
-        if (orderIdEl) orderIdEl.textContent = orderNum(orderData?.id);
-
-        window._invoiceData = {
-          orderId:    orderNum(orderData?.id),
-          datum:      new Date().toLocaleDateString('de-DE'),
-          vorname:    draft.vorname || '',
-          nachname:   draft.nachname || '',
-          strasse:    draft.strasse,
-          hausnummer: draft.hausnummer,
-          plz:        draft.plz,
-          stadt:      draft.stadt,
-          items:      orderItems,
-          total:      total,
-          isPaid:     false,
-        };
-
-        sessionStorage.removeItem('honig_order_draft');
-        HonigCart.clear();
-
-        document.getElementById('manual-total').textContent = formatPrice(total);
-        document.getElementById('checkout-content').classList.add('hidden');
-        document.getElementById('success-msg-manual').classList.remove('hidden');
       }
 
       window.finalizeManualOrder = async function() { await createOrder(); };
